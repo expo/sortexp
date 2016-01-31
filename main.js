@@ -59,22 +59,29 @@ class DraggableExample extends React.Component {
     let { rowCount, order } = this.state;
 
     return (
-      <ScrollView style={{marginTop: 25}} contentContainerStyle={{paddingTop: 10}}>
-        {order.map(i => {
+      <ScrollView
+        style={{marginTop: 25}}
+        contentContainerStyle={{paddingTop: 10, height: itemHeightWithSpace * rowCount}}>
+        {range(rowCount).map(i => {
           let style = {
             scale: spring(1),
-            elevation: spring(1),
+            elevation: spring(0),
+            y: spring(order.indexOf(i) * itemHeightWithSpace),
           };
 
           return (
             <Motion style={style} key={i}>
-              {({scale, elevation}) => {
+              {({scale, elevation, y}) => {
                 return (
                   <View
                     elevation={elevation}
-                    style={{
-                      transform: [{scale}],
-                    }}>
+                    style={[
+                      styles.draggableRowWrapper,
+                      {
+                        top: y,
+                        transform: [{scale}]
+                      },
+                     ]}>
                     <Row number={i+1} />
                   </View>
                 );
@@ -89,6 +96,7 @@ class DraggableExample extends React.Component {
 
 const styles = StyleSheet.create({
   draggableRowWrapper: {
+      position: 'absolute',
       width: itemWidth,
       marginBottom: 10,
 
