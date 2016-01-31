@@ -43,55 +43,72 @@ class Row extends React.Component {
 
 }
 
-class DraggableExample extends React.Component {
+class SortableList extends React.Component {
   constructor(props, context) {
     super(props, context);
 
-    let rowCount = 10;
+    let rowCount = this.props.items.length;
+    let rows = this.props.items;
 
     this.state = {
       rowCount,
-      order: range(rowCount),
+      rows,
+      order: rows,
     };
   }
 
   render() {
-    let { rowCount, order } = this.state;
+    let { rowCount, rows, order } = this.state;
 
     return (
       <ScrollView
         style={{marginTop: 25}}
-        contentContainerStyle={{paddingTop: 10, height: itemHeightWithSpace * rowCount}}>
-        {range(rowCount).map(i => {
-          let style = {
-            scale: spring(1),
-            elevation: spring(0),
-            y: spring(order.indexOf(i) * itemHeightWithSpace),
-          };
-
-          return (
-            <Motion style={style} key={i}>
-              {({scale, elevation, y}) => {
-                return (
-                  <View
-                    elevation={elevation}
-                    style={[
-                      styles.draggableRowWrapper,
-                      {
-                        top: y,
-                        transform: [{scale}]
-                      },
-                     ]}>
-                    <Row number={i+1} />
-                  </View>
-                );
-              }}
-            </Motion>
-          );
-        })}
+        contentContainerStyle={{marginTop: 10, height: itemHeightWithSpace * rowCount}}>
+        {rows.map(i => this._renderRow(i))}
       </ScrollView>
     );
   }
+
+  _renderRow(i) {
+    let { rowCount, rows, order } = this.state;
+
+    let style = {
+      scale: spring(1),
+      elevation: spring(0),
+      y: spring(order.indexOf(i) * itemHeightWithSpace),
+    };
+
+    return (
+      <Motion style={style} key={i}>
+        {({scale, elevation, y}) => {
+          return (
+            <View
+              elevation={elevation}
+              style={[
+                styles.draggableRowWrapper,
+                {
+                  top: y,
+                  transform: [{scale}]
+                },
+               ]}>
+              <Row number={i+1} />
+            </View>
+          );
+        }}
+      </Motion>
+    );
+  }
+}
+
+class DraggableExample extends React.Component {
+
+  render() {
+    return (
+      <SortableList
+        items={range(10)} />
+    );
+  }
+
 }
 
 const styles = StyleSheet.create({
