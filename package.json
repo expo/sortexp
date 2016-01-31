@@ -1,0 +1,16 @@
+{
+  "name": "motionexp",
+  "version": "0.0.0",
+  "description": "Hello Exponent!",
+  "author": "brentvatne@gmail.com",
+  "private": true,
+  "main": "main.js",
+  "exp": {
+    "abiVersion": "4.0.0"
+  },
+  "dependencies": {
+    "lodash": "^4.1.0",
+    "react-motion": "^0.4.2",
+    "react-native": "github:exponentjs/react-native#2016-01-02"
+  }
+}
