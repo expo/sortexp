@@ -3,6 +3,7 @@
 import React, {
   AppRegistry,
   Dimensions,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -58,31 +59,21 @@ class DraggableExample extends React.Component {
     let { rowCount, order } = this.state;
 
     return (
-      <View style={{flex: 1, marginTop: 30,}}>
-        {range(rowCount).map(i => {
+      <ScrollView style={{marginTop: 25}} contentContainerStyle={{paddingTop: 10}}>
+        {order.map(i => {
           let style = {
             scale: spring(1),
             elevation: spring(1),
-            y: spring(order.indexOf(i) * itemHeightWithSpace),
           };
 
           return (
             <Motion style={style} key={i}>
-              {({scale, elevation, y}) => {
+              {({scale, elevation}) => {
                 return (
                   <View
                     elevation={elevation}
                     style={{
                       transform: [{scale}],
-                      position: 'absolute',
-                      width: itemWidth,
-                      top: y,
-
-                      /* Would like to put this on the row.. But can't because of elevation */
-                      borderColor: '#ccc',
-                      marginHorizontal: 25,
-                      borderRadius: 10,
-                      borderWidth: 1,
                     }}>
                     <Row number={i+1} />
                   </View>
@@ -91,12 +82,24 @@ class DraggableExample extends React.Component {
             </Motion>
           );
         })}
-      </View>
+      </ScrollView>
     );
   }
 }
 
 const styles = StyleSheet.create({
+  draggableRowWrapper: {
+      width: itemWidth,
+      marginBottom: 10,
+
+      /* Would like to put this on the row.. But can't because of elevation
+       * (you don't see any visual indication of elevation if no border on the
+       * view that it's applied to) */
+      borderColor: '#ccc',
+      marginHorizontal: 25,
+      borderRadius: 10,
+      borderWidth: 1,
+  },
 });
 
 AppRegistry.registerComponent('main', () => DraggableExample);
