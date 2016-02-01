@@ -14,25 +14,34 @@ import {
   spring,
 } from 'react-motion';
 
+import reactMixin from 'react-mixin';
+import TimerMixin from 'react-timer-mixin';
+
 import clamp from './clamp';
 import range from 'lodash/range';
 import reinsert from './reinsert';
 
 const spaceBetweenItems = 10;
-const itemHeight = 90;
+const itemHeight = 70;
 const itemWidth = Dimensions.get('window').width - 50;
 const itemHeightWithSpace = itemHeight + spaceBetweenItems;
 
 class Item extends React.Component {
 
+  shouldComponentUpdate() {
+    return false;
+  }
+
   render() {
     return (
       <View
         style={{
-          height: 90,
+          height: itemHeight,
           flex: 1,
           padding: 20,
           justifyContent: 'center',
+          backgroundColor: '#fff',
+          borderRadius: 15,
         }}>
         <Text>
           {this.props.text}
@@ -58,30 +67,138 @@ class SortableList extends React.Component {
   }
 
   render() {
-    let { rowCount, rows, order } = this.state;
-    let { getItemId } = this.props;
+    let {
+      rowCount,
+      rows,
+      order,
+    } = this.state;
+
+    let {
+      getItemId,
+    } = this.props;
 
     return (
       <ScrollView
-        style={{marginTop: 25}}
-        contentContainerStyle={{marginTop: 10, height: itemHeightWithSpace * rowCount}}>
-        {rows.map(item => this._renderItem(item, getItemId(item)))}
+        onScroll={() => { console.log('scroll') }}
+        onScrollEnd={() => { console.log('scroll end') }}
+        onScrollAnimationEnd={() => { console.log('animation end') }}
+        onMomentumScrollEnd={() => { console.log('momentum scroll end') }}
+        ref={view => { this._scrollView = view }}
+        scrollEnabled={!this.state.isSorting}
+        scrollEventThrottle={50}
+        style={{marginTop: 25}}>
+        <View
+          style={{height: itemHeightWithSpace * rowCount, flex: 1, marginTop: 10}}
+          collapsible={false}
+          onStartShouldSetResponder={this._onStartShouldSetResponder.bind(this)}
+          onResponderStart={this._onResponderStart.bind(this)}
+          onResponderGrant={this._onResponderGrant.bind(this)}
+          onResponderMove={this._onResponderMove.bind(this)}
+          onResponderRelease={this._onResponderRelease.bind(this)}
+          onResponderTerminate={this._onResponderTerminate.bind(this)}
+          onResponderTerminationRequest={this._onResponderTerminationRequest.bind(this)}>
+          {rows.map(item => this._renderItem(item, getItemId(item)))}
+        </View>
       </ScrollView>
     );
+  }
+
+  _startSorting(itemId) {
+    this.setState({
+      isSorting: true,
+      pressedItemId: 'id-0',
+    });
+  }
+
+  _finishSorting() {
+    this.setState({
+      isSorting: false,
+      pressedItemId: null,
+    });
+  }
+
+  _onStartShouldSetResponder() {
+    this._enableTimeout && this.clearTimeout(this._enableTimeout);
+    this._disableTimeout && this.clearTimeout(this._disableTimeout);
+
+    this._enableTimeout = this.setTimeout(() => {
+      console.log('scroll disabled!');
+      this.setState({isSorting: true});
+
+      this._disableTimeout = this.setTimeout(() => {
+        console.log('scroll enabled!');
+        this.setState({isSorting: false});
+      }, 5000);
+    }, 1000);
+    // this._touchStartTimeout = this.setTimeout(() => {
+    //   this._startSorting(0);
+    // }, 300);
+
+    // return true;
+  }
+
+  _onResponderRelease() {
+    this._maybeClearTouchStartTimeout();
+    this._finishSorting();
+  }
+
+  _onResponderTerminate() {
+    this._maybeClearTouchStartTimeout();
+  }
+
+  _onResponderTerminationRequest() {
+    // console.log('request');
+  }
+
+  _maybeClearTouchStartTimeout() {
+    this._isSorting = false;
+    if (this._touchStartTimeout) {
+      this.clearTimeout(this._touchStartTimeout);
+      this._touchStartTimeout = null;
+    }
+  }
+
+  _onResponderStart(e) {
+    // console.log('start');
+  }
+
+  _onResponderGrant(e) {
+    if (this._isSorting) {
+      return true;
+    }
+  }
+
+  _onResponderMove(e) {
+    if (this._isSorting) {
+      return true;
+    }
   }
 
   _renderItem(item, itemId) {
     let {
       rowCount,
       rows,
-      order
+      isSorting,
+      pressedItemId,
+      order,
     } = this.state;
 
-    let style = {
-      scale: spring(1),
-      elevation: spring(0),
-      y: spring(order.indexOf(itemId) * itemHeightWithSpace),
-    };
+
+    let style;
+
+    if (isSorting && pressedItemId === itemId) {
+      style = {
+        scale: spring(1.05),
+        elevation: spring(3),
+        y: spring(order.indexOf(itemId) * itemHeightWithSpace),
+      };
+    } else {
+      style = {
+        scale: spring(1),
+        elevation: spring(0),
+        y: spring(order.indexOf(itemId) * itemHeightWithSpace),
+      };
+    }
 
     return (
       <Motion style={style} key={itemId}>
@@ -100,17 +217,19 @@ class SortableList extends React.Component {
   }
 
   _handleItemLayout(itemId, {nativeEvent: {layout: itemLayout}}) {
-    console.log({
-      itemId,
-      height: itemLayout.height,
-    });
+    // console.log({
+    //   itemId,
+    //   height: itemLayout.height,
+    // });
   }
 }
+
+reactMixin(SortableList.prototype, TimerMixin);
 
 class DraggableExample extends React.Component {
 
   render() {
-    let items = range(10).map((i) => {
+    let items = range(150).map((i) => {
       return {
         guid: `id-${i}`,
         text: i.toString(),

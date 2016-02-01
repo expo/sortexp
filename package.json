@@ -6,11 +6,13 @@
   "private": true,
   "main": "main.js",
   "exp": {
-    "abiVersion": "4.0.0"
+    "abiVersion": "UNVERSIONED"
   },
   "dependencies": {
     "lodash": "^4.1.0",
+    "react-mixin": "^3.0.3",
     "react-motion": "^0.4.2",
-    "react-native": "github:exponentjs/react-native#2016-01-02"
+    "react-native": "github:exponentjs/react-native#2016-01-02",
+    "react-timer-mixin": "^0.13.3"
   }
 }
