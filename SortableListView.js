@@ -18,60 +18,64 @@ var SortableListView = React.createClass({
   layoutMap: {},
 
   // Keep track of the current scroll position
-  scrollValue: 0,
+  mostRecentScrollOffset: 0,
 
   // ???????
-  moveY: null,
+  dragMoveY: null,
 
   getInitialState: function() {
-    let currentPanValue = {x: 0, y: 0};
+    let {
+      items,
+      sortOrder,
+    } = this.props;
+
+    let currentPanValue = {
+      x: 0,
+      y: 0,
+    };
+
     let dataSource = new ListView.DataSource({
       rowHasChanged: (r1, r2) => r1 !== r2,
     });
 
     this.state = {
-      dataSource: dataSource.cloneWithRows(this.props.items, this.props.sortOrder),
-      sorting: false,
-      active: false,
+      dataSource: dataSource.cloneWithRows(items, sortOrder),
+      isSorting: false,
+      activeRowId: null,
       pan: new Animated.ValueXY(currentPanValue)
     };
 
-    let onPanResponderMoveCb = Animated.event([null, {
+    let eventCallback = Animated.event([null, {
        dx: this.state.pan.x,
        dy: this.state.pan.y,
     }]);
 
     this.state.panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
+      onStartShouldSetPanResponder: () => this.state.isSorting,
+      onMoveShouldSetResponderCapture: () => this.state.isSorting,
+      onMoveShouldSetPanResponder: () => this.state.isSorting,
+      onMoveShouldSetPanResponderCapture: () => this.state.isSorting,
       onPanResponderMove: (evt, gestureState) => {
         gestureState.dx = 0;
-
-        this.moveY = gestureState.moveY;
-        onPanResponderMoveCb(evt, gestureState);
+        this.dragMoveY = gestureState.moveY;
+        eventCallback(evt, gestureState);
       },
 
       onPanResponderGrant: (e, gestureState) => {
-        console.log('grant!');
         this._isResponder = true;
         this.state.pan.setOffset(currentPanValue);
         this.state.pan.setValue(currentPanValue);
       },
 
       onPanResponderReject: (e, gestureState) => {
-        console.log('rejected', e)
         this._isResponder = false;
       },
 
       onPanResponderTerminate: () => {
-        console.log('terminate');
         this._isResponder = false;
       },
 
       onPanResponderRelease: (e) => {
-        console.log('release');
         this._isResponder = false;
         this._handleRowInactive();
       }
@@ -82,7 +86,8 @@ var SortableListView = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     // TODO: should use immutable for this, call toArray when passing into cloneWithRows
-    if (nextProps.items !== this.props.items || nextProps.sortOrder !== this.props.sortOrder) {
+    if (nextProps.items !== this.props.items ||
+        nextProps.sortOrder !== this.props.sortOrder) {
       this.setState({
         dataSource: this.state.dataSource.cloneWithRows(nextProps.items, nextProps.sortOrder),
       });
@@ -95,34 +100,34 @@ var SortableListView = React.createClass({
 
   // ?????????????????
   scrollAnimation: function() {
-    if (this.isMounted() && this.state.active) {
-      if (this.moveY === null) {
+    if (this.isMounted() && this.state.activeRowId) {
+      if (this.dragMoveY === null) {
         return requestAnimationFrame(this.scrollAnimation);
       }
 
       let SCROLL_LOWER_BOUND = 100;
       let SCROLL_HIGHER_BOUND = this.listLayout.height - SCROLL_LOWER_BOUND;
       let MAX_SCROLL_VALUE = this.scrollContainerHeight;
-      let currentScrollValue = this.scrollValue;
+      let currentScrollValue = this.mostRecentScrollOffset;
       let newScrollValue = null;
       let SCROLL_MAX_CHANGE = 15;
 
-      if (this.moveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
-        let PERCENTAGE_CHANGE = 1 - (this.moveY / SCROLL_LOWER_BOUND);
+      if (this.dragMoveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
+        let PERCENTAGE_CHANGE = 1 - (this.dragMoveY / SCROLL_LOWER_BOUND);
           newScrollValue = currentScrollValue - (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
           if (newScrollValue < 0) newScrollValue = 0;
       }
 
-      if (this.moveY > SCROLL_HIGHER_BOUND && currentScrollValue < MAX_SCROLL_VALUE) {
+      if (this.dragMoveY > SCROLL_HIGHER_BOUND && currentScrollValue < MAX_SCROLL_VALUE) {
 
-        let PERCENTAGE_CHANGE = 1 - ((this.listLayout.height - this.moveY) / SCROLL_LOWER_BOUND);
+        let PERCENTAGE_CHANGE = 1 - ((this.listLayout.height - this.dragMoveY) / SCROLL_LOWER_BOUND);
         newScrollValue = currentScrollValue + (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
         if (newScrollValue > MAX_SCROLL_VALUE) newScrollValue = MAX_SCROLL_VALUE;
       }
 
       if (newScrollValue !== null) {
-        this.scrollValue = newScrollValue;
-         this.scrollResponder.scrollWithoutAnimationTo(this.scrollValue, 0);
+        this.mostRecentScrollOffset = newScrollValue;
+        this.scrollResponder.scrollWithoutAnimationTo(this.mostRecentScrollOffset, 0);
       }
 
       this.checkTargetElement();
@@ -130,36 +135,53 @@ var SortableListView = React.createClass({
     }
   },
 
+  findRowIdAtOffset(y) {
+    let { sortOrder } = this.props;
+    let { layoutMap } = this;
+
+    let heightAcc = 0; // wut
+    let rowIdx = 0; // wut
+    let rowLayout; // wut
+
+    // Added heights for each row until you reach the target y
+    while (heightAcc < y) {
+      let rowId = sortOrder[rowIdx];
+      rowLayout = layoutMap[rowId];
+
+      // Are we somehow missing row layout? abort I guess?
+      if (!rowLayout) {
+        return;
+      }
+
+      // Add height to accumulator
+      heightAcc += rowLayout.height;
+      rowIdx = rowIdx + 1;
+    }
+
+    // Then return the rowId at that index
+    return sortOrder[rowIdx - 1];
+  },
+
+  findCurrentlyHoveredRow() {
+    let { mostRecentScrollOffset, dragMoveY } = this;
+    let absoluteDragOffsetInList = mostRecentScrollOffset + dragMoveY;
+
+    return this.findRowIdAtOffset(absoluteDragOffsetInList);
+  },
+
   // TODO: rewrite this, super confusing!
   // When we move the cursor we need to see what element we are hovering over
   checkTargetElement() {
-    let scrollValue = this.scrollValue;
-    let moveY = this.moveY;
-    let targetPixel = scrollValue + moveY;
-    let i = 0;
-    let x = 0;
-    let row;
+    let { hoveredRowId, activeRowId } = this.state;
+    let newHoveredRowId = this.findCurrentlyHoveredRow();
 
-    while (i < targetPixel) {
-      row = this.layoutMap[this.props.sortOrder[x]];
-      if (!row) {
-        return;
-      }
-      i += row.height;
-      x++;
-    }
-    x--;
-
-    let rowId = this.props.sortOrder[x];
-
-    if (rowId !== this.state.hovering && rowId !== this.state.active.rowData.rowId) {
+    if (hoveredRowId !== newHoveredRowId) {
       LayoutAnimation.linear();
 
       this.setState({
-        hovering: rowId,
+        hoveredRowId: newHoveredRowId,
       })
     }
-
   },
 
   // This is called from a Row when it becomes active
@@ -169,64 +191,34 @@ var SortableListView = React.createClass({
     LayoutAnimation.linear();
 
     this.setState({
-      sorting: true,
-      active: row
+      isSorting: true,
+      activeRowId: row.rowData.rowId,
+      activeLayout: row.layout,
     }, this.scrollAnimation);
   },
 
+  /* It is possible to be in sorting state without being responder, this
+   * happens when the underlying Touchable fires _handleRowActive but the
+   * user doesn't move their finger, so the PanResponder never grabs
+   * responder. To make sure this is always called, we fire
+   * _handleRowInactive from onLongPressOut */
   _handleRowInactive() {
-    // It is possible to be in sorting state without being responder, this happens when
-    // the underlying Touchable fires _handleRowActive but the user doesn't move their
-    // finger, so the PanResponder never grabs responder. To make sure this is always
-    // called, we fire _handleRowInactive from onLongPressOut
-    if (this.state.sorting && !this._isResponder) {
-      this.setState({active: false, sorting: false, hovering: false});
+    if (this.state.isSorting && !this._isResponder) {
+      this.setState({
+        activeRowId: null,
+        isSorting: false,
+        hoveredRowId: null
+      });
     }
   },
 
-  // The divider creates a space in an view to indicate where the drop location will be
+  /* The divider creates a space in an view to indicate where the drop location
+   * will be */
   renderActiveDivider: function() {
-    if (this.props.activeDivider) {
-      this.props.activeDivider();
-    }
+    let { activeRowId } = this.state;
+    let height = activeRowId ? this.layoutMap[activeRowId] : 0;
 
-    return (
-      <View style={{
-        height: this.state.active ? this.state.active.layout.frameHeight : 0
-      }} />
-    );
-  },
-
-  renderRow: function(data, rowId, props) {
-    let Component = props.active ? SortRow : Row;
-    let isActiveRow = (!props.active && this.state.active && this.state.active.rowData.rowId === rowId);
-
-    return (
-      <Component
-        {...this.props}
-        activeDivider={this.renderActiveDivider()}
-        key={rowId}
-        active={isActiveRow}
-        list={this}
-        hovering={this.state.hovering === rowId}
-        panResponder={this.state.panResponder}
-        rowData={{data, rowId}}
-        onLongPress={this._handleRowActive}
-        onLongPressOut={this._handleRowInactive}
-        onRowLayout={layout => this.layoutMap[rowId] = layout.nativeEvent.layout}
-      />
-    );
-  },
-
-  renderActive: function() {
-    if (!this.state.active) return;
-    let itemId = this.state.active.rowData.rowId;
-
-    return this.renderRow(
-      this.props.items[itemId],
-      itemId,
-      {active: true} // wat?
-    );
+    return <View style={{height}} />;
   },
 
   render: function() {
@@ -238,24 +230,50 @@ var SortableListView = React.createClass({
           ref="list"
           dataSource={this.state.dataSource}
           onScroll={e => {
-            this.scrollValue = e.nativeEvent.contentOffset.y;
+            this.mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
             this.scrollContainerHeight = e.nativeEvent.contentSize.height;
           }}
           onLayout={(e) => this.listLayout = e.nativeEvent.layout}
-          scrollEnabled={!this.state.active}
-          renderRow={(data, section, rowId, highlightfn, active) => {
-            return this.renderRow(
-              data,
-              rowId,
-              {active},
-            );
+          scrollEnabled={!this.state.isSorting}
+          renderRow={(data, _unused, rowId, __unused, ___unused) => {
+            return this.renderRow(data, rowId);
           }}
         />
 
-        {this.renderActive()}
+        {this.renderGhostItem()}
       </View>
     );
-  }
+  },
+
+  renderRow: function(data, rowId, props = {}) {
+    let Component = props.isGhost ? SortRow : Row;
+    let isActiveRow = this.state.active && this.state.active.rowData.rowId === rowId;
+
+    return (
+      <Component
+        {...this.props}
+        active={isActiveRow}
+        activeDivider={this.renderActiveDivider()}
+        hovering={this.state.hoveringRowId === rowId}
+        key={rowId}
+        list={this}
+        onLongPress={this._handleRowActive}
+        onLongPressOut={this._handleRowInactive}
+        onRowLayout={layout => this.layoutMap[rowId] = layout.nativeEvent.layout}
+        panResponder={this.state.panResponder}
+        rowData={{data, rowId}}
+      />
+    );
+  },
+
+  renderGhostItem: function() {
+    if (!this.state.activeRowId) return;
+    let itemId = this.state.activeRowId;
+    let item = this.props.items[itemId];
+
+    return this.renderRow(item, itemId, {isGhost: true});
+  },
+
 });
 
 export default SortableListView;

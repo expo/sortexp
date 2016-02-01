@@ -12,8 +12,10 @@ var {
 var SortRow = React.createClass({
 
   getInitialState: function() {
-    let layout = this.props.list.state.active.layout;
-    let rowLayout = this.props.list.layoutMap[this.props.rowData.index];
+    // TODO: yikes, reaching into another component's state
+    let activeRowId = this.props.list.state.activeRowId;
+    let layout = this.props.list.state.activeLayout;
+    let rowLayout = this.props.list.layoutMap[this.props.rowData.rowId];
 
     return {
       style: {
@@ -25,7 +27,7 @@ var SortRow = React.createClass({
         backgroundColor: 'transparent',
         borderWidth: 0.5,
         borderColor: '#eee',
-        marginTop: layout.pageY - 20 // Account for top bar spacing
+        marginTop: layout.pageY - 20, // Account for top bar spacing
       }
     }
   },
@@ -36,7 +38,6 @@ var SortRow = React.createClass({
       this.props.rowData.rowId,
       {
         active: true,
-        thumb: true,
       }
     );
 

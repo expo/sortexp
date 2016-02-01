@@ -29,13 +29,12 @@ class ListItem extends React.Component {
 
   render() {
     let { item, sortableProps } = this.props;
-    console.log(sortableProps);
 
     return (
       <TouchableComponent
         {...sortableProps}
-        onPress={() => { this._textInput.focus(); }}
-        delayLongPress={300}>
+        onPress={() => this._handleFocus() }
+        delayLongPress={250}>
         <View
           style={styles.row}
           elevation={sortableProps.thumb ? 3 : 0}
@@ -58,8 +57,12 @@ class ListItem extends React.Component {
   }
 
   _handleFocus() {
+    console.log('call handle!');
     if (!this.state.isFocused) {
       this.setState({isFocused: true});
+      requestAnimationFrame(() => {
+        this._textInput.focus();
+      });
     }
   }
 
