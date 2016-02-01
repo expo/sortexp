@@ -3,273 +3,138 @@
 import React, {
   AppRegistry,
   Dimensions,
+  ListView,
   ScrollView,
   StyleSheet,
-  Text,
+  TextInput,
   View,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
 } from 'react-native';
 
-import {
-  Motion,
-  spring,
-} from 'react-motion';
+const TouchableComponent = TouchableOpacity;
 
-import reactMixin from 'react-mixin';
-import TimerMixin from 'react-timer-mixin';
-
-import clamp from './clamp';
 import range from 'lodash/range';
-import reinsert from './reinsert';
+import SortableListView from './SortableListView';
 
-const spaceBetweenItems = 10;
-const itemHeight = 70;
-const itemWidth = Dimensions.get('window').width - 50;
-const itemHeightWithSpace = itemHeight + spaceBetweenItems;
+class ListItem extends React.Component {
 
-class Item extends React.Component {
-
-  shouldComponentUpdate() {
-    return false;
-  }
-
-  render() {
-    return (
-      <View
-        style={{
-          height: itemHeight,
-          flex: 1,
-          padding: 20,
-          justifyContent: 'center',
-          backgroundColor: '#fff',
-          borderRadius: 15,
-        }}>
-        <Text>
-          {this.props.text}
-        </Text>
-      </View>
-    );
-  }
-
-}
-
-class SortableList extends React.Component {
-  constructor(props, context) {
-    super(props, context);
-
-    let rowCount = this.props.items.length;
-    let rows = this.props.items;
+  constructor(props) {
+    super(props);
 
     this.state = {
-      rowCount,
-      rows,
-      order: rows.map(this.props.getItemId),
+      isFocused: false,
     };
   }
 
   render() {
-    let {
-      rowCount,
-      rows,
-      order,
-    } = this.state;
-
-    let {
-      getItemId,
-    } = this.props;
+    let { item, sortableProps } = this.props;
+    console.log(sortableProps);
 
     return (
-      <ScrollView
-        onScroll={() => { console.log('scroll') }}
-        onScrollEnd={() => { console.log('scroll end') }}
-        onScrollAnimationEnd={() => { console.log('animation end') }}
-        onMomentumScrollEnd={() => { console.log('momentum scroll end') }}
-        ref={view => { this._scrollView = view }}
-        scrollEnabled={!this.state.isSorting}
-        scrollEventThrottle={50}
-        style={{marginTop: 25}}>
+      <TouchableComponent
+        {...sortableProps}
+        onPress={() => { this._textInput.focus(); }}
+        delayLongPress={300}>
         <View
-          style={{height: itemHeightWithSpace * rowCount, flex: 1, marginTop: 10}}
-          collapsible={false}
-          onStartShouldSetResponder={this._onStartShouldSetResponder.bind(this)}
-          onResponderStart={this._onResponderStart.bind(this)}
-          onResponderGrant={this._onResponderGrant.bind(this)}
-          onResponderMove={this._onResponderMove.bind(this)}
-          onResponderRelease={this._onResponderRelease.bind(this)}
-          onResponderTerminate={this._onResponderTerminate.bind(this)}
-          onResponderTerminationRequest={this._onResponderTerminationRequest.bind(this)}>
-          {rows.map(item => this._renderItem(item, getItemId(item)))}
+          style={styles.row}
+          elevation={sortableProps.thumb ? 3 : 0}
+          pointerEvents={this.state.isFocused ? 'auto' : 'none'}>
+          <View style={styles.bulletContainer}>
+            <View style={styles.bullet} />
+          </View>
+
+          <TextInput
+            underlineColorAndroid="transparent"
+            onFocus={this._handleFocus.bind(this)}
+            onBlur={this._handleBlur.bind(this)}
+            onLongPress={() => React.Alert.alert('wut')}
+            ref={view => { this._textInput = view; }}
+            style={styles.textInput}
+            value={item.text} />
         </View>
-      </ScrollView>
+      </TouchableComponent>
     );
   }
 
-  _startSorting(itemId) {
-    this.setState({
-      isSorting: true,
-      pressedItemId: 'id-0',
-    });
-  }
-
-  _finishSorting() {
-    this.setState({
-      isSorting: false,
-      pressedItemId: null,
-    });
-  }
-
-  _onStartShouldSetResponder() {
-    this._enableTimeout && this.clearTimeout(this._enableTimeout);
-    this._disableTimeout && this.clearTimeout(this._disableTimeout);
-
-    this._enableTimeout = this.setTimeout(() => {
-      console.log('scroll disabled!');
-      this.setState({isSorting: true});
-
-      this._disableTimeout = this.setTimeout(() => {
-        console.log('scroll enabled!');
-        this.setState({isSorting: false});
-      }, 5000);
-    }, 1000);
-    // this._touchStartTimeout = this.setTimeout(() => {
-    //   this._startSorting(0);
-    // }, 300);
-
-    // return true;
-  }
-
-  _onResponderRelease() {
-    this._maybeClearTouchStartTimeout();
-    this._finishSorting();
-  }
-
-  _onResponderTerminate() {
-    this._maybeClearTouchStartTimeout();
-  }
-
-  _onResponderTerminationRequest() {
-    // console.log('request');
-  }
-
-  _maybeClearTouchStartTimeout() {
-    this._isSorting = false;
-    if (this._touchStartTimeout) {
-      this.clearTimeout(this._touchStartTimeout);
-      this._touchStartTimeout = null;
+  _handleFocus() {
+    if (!this.state.isFocused) {
+      this.setState({isFocused: true});
     }
   }
 
-  _onResponderStart(e) {
-    // console.log('start');
+  _handleBlur() {
+    this.setState({isFocused: false});
   }
 
-  _onResponderGrant(e) {
-    if (this._isSorting) {
-      return true;
-    }
-  }
-
-  _onResponderMove(e) {
-    if (this._isSorting) {
-      return true;
-    }
-  }
-
-  _renderItem(item, itemId) {
-    let {
-      rowCount,
-      rows,
-      isSorting,
-      pressedItemId,
-      order,
-    } = this.state;
-
-
-    let style;
-
-    if (isSorting && pressedItemId === itemId) {
-      style = {
-        scale: spring(1.05),
-        elevation: spring(3),
-        y: spring(order.indexOf(itemId) * itemHeightWithSpace),
-      };
-    } else {
-      style = {
-        scale: spring(1),
-        elevation: spring(0),
-        y: spring(order.indexOf(itemId) * itemHeightWithSpace),
-      };
-    }
-
-    return (
-      <Motion style={style} key={itemId}>
-        {({scale, elevation, y}) => {
-          return (
-            <View
-              onLayout={this._handleItemLayout.bind(this, itemId)}
-              elevation={elevation}
-              style={[styles.draggableItemWrapper, { top: y, transform: [{scale}] }]}>
-              {this.props.renderItem(item, itemId)}
-            </View>
-          );
-        }}
-      </Motion>
-    );
-  }
-
-  _handleItemLayout(itemId, {nativeEvent: {layout: itemLayout}}) {
-    // console.log({
-    //   itemId,
-    //   height: itemLayout.height,
-    // });
-  }
 }
-
-reactMixin(SortableList.prototype, TimerMixin);
 
 class DraggableExample extends React.Component {
 
+  constructor(props) {
+    super(props);
+
+    let identities = [];
+    let items = range(20).reduce((result, i) => {
+      let key = `id-${i}`
+      identities.push(key);
+      result[key] = {text: i.toString()}
+      return result;
+    }, {});
+
+    this.state = {
+      items,
+      identities,
+    };
+  }
+
   render() {
-    let items = range(150).map((i) => {
-      return {
-        guid: `id-${i}`,
-        text: i.toString(),
-      }
-    });
-
     return (
-      <SortableList
-        onChangeOrder={this._handleChangeOrder.bind(this)}
-        renderItem={this._renderItem}
-        getItemId={(item) => item.guid}
-        items={items} />
+      <View style={{marginTop: 25, flex: 1,}}>
+        <SortableListView
+          renderRow={this._renderRow}
+          items={this.state.items}
+          sortOrder={this.state.identities}
+        />
+      </View>
     );
   }
 
-  _renderItem(item, itemId) {
+  _renderRow(item, rowId, props) {
     return (
-      <Item text={item.text} />
+      <ListItem
+        item={item}
+        id={rowId}
+        sortableProps={props}
+      />
     );
-  }
-
-  _handleChangeOrder(newOrder, previousOrder) {
-    console.log(newOrder);
-    console.log(previousOrder);
   }
 }
 
 const styles = StyleSheet.create({
-  draggableItemWrapper: {
-      position: 'absolute',
-      width: itemWidth,
-      marginBottom: 10,
-
-      /* Would like to put this on the row.. But can't because of elevation
-       * (you don't see any visual indication of elevation if no border on the
-       * view that it's applied to) */
-      borderColor: '#ccc',
-      marginHorizontal: 25,
-      borderRadius: 10,
-      borderWidth: 1,
+  row: {
+    flexDirection: 'row',
+    height: 50,
+    flex: 1,
+    borderColor: '#eee',
+    borderBottomWidth: 1,
+    backgroundColor: '#fff',
+  },
+  bulletContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 5,
+    marginLeft: 5,
+    marginRight: 5,
+  },
+  bullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+  },
+  textInput: {
+    flex: 1,
   },
 });
 
