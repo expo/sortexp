@@ -23,7 +23,7 @@ const itemHeight = 90;
 const itemWidth = Dimensions.get('window').width - 50;
 const itemHeightWithSpace = itemHeight + spaceBetweenItems;
 
-class Row extends React.Component {
+class Item extends React.Component {
 
   render() {
     return (
@@ -35,7 +35,7 @@ class Row extends React.Component {
           justifyContent: 'center',
         }}>
         <Text>
-          {this.props.number}
+          {this.props.text}
         </Text>
       </View>
     );
@@ -53,66 +53,93 @@ class SortableList extends React.Component {
     this.state = {
       rowCount,
       rows,
-      order: rows,
+      order: rows.map(this.props.getItemId),
     };
   }
 
   render() {
     let { rowCount, rows, order } = this.state;
+    let { getItemId } = this.props;
 
     return (
       <ScrollView
         style={{marginTop: 25}}
         contentContainerStyle={{marginTop: 10, height: itemHeightWithSpace * rowCount}}>
-        {rows.map(i => this._renderRow(i))}
+        {rows.map(item => this._renderItem(item, getItemId(item)))}
       </ScrollView>
     );
   }
 
-  _renderRow(i) {
-    let { rowCount, rows, order } = this.state;
+  _renderItem(item, itemId) {
+    let {
+      rowCount,
+      rows,
+      order
+    } = this.state;
 
     let style = {
       scale: spring(1),
       elevation: spring(0),
-      y: spring(order.indexOf(i) * itemHeightWithSpace),
+      y: spring(order.indexOf(itemId) * itemHeightWithSpace),
     };
 
     return (
-      <Motion style={style} key={i}>
+      <Motion style={style} key={itemId}>
         {({scale, elevation, y}) => {
           return (
             <View
+              onLayout={this._handleItemLayout.bind(this, itemId)}
               elevation={elevation}
-              style={[
-                styles.draggableRowWrapper,
-                {
-                  top: y,
-                  transform: [{scale}]
-                },
-               ]}>
-              <Row number={i+1} />
+              style={[styles.draggableItemWrapper, { top: y, transform: [{scale}] }]}>
+              {this.props.renderItem(item, itemId)}
             </View>
           );
         }}
       </Motion>
     );
   }
+
+  _handleItemLayout(itemId, {nativeEvent: {layout: itemLayout}}) {
+    console.log({
+      itemId,
+      height: itemLayout.height,
+    });
+  }
 }
 
 class DraggableExample extends React.Component {
 
   render() {
+    let items = range(10).map((i) => {
+      return {
+        guid: `id-${i}`,
+        text: i.toString(),
+      }
+    });
+
     return (
       <SortableList
-        items={range(10)} />
+        onChangeOrder={this._handleChangeOrder.bind(this)}
+        renderItem={this._renderItem}
+        getItemId={(item) => item.guid}
+        items={items} />
     );
   }
 
+  _renderItem(item, itemId) {
+    return (
+      <Item text={item.text} />
+    );
+  }
+
+  _handleChangeOrder(newOrder, previousOrder) {
+    console.log(newOrder);
+    console.log(previousOrder);
+  }
 }
 
 const styles = StyleSheet.create({
-  draggableRowWrapper: {
+  draggableItemWrapper: {
       position: 'absolute',
       width: itemWidth,
       marginBottom: 10,
