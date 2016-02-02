@@ -4,20 +4,37 @@ import React, {
 
 const Row = React.createClass({
 
+  getInitialState() {
+    return {
+      isHoveredOver: false,
+    };
+  },
+
+  componentWillMount() {
+  },
+
   shouldComponentUpdate(props) {
-    if (props.isHoveredOver !== this.props.isHoveredOver) return true;
-    if (props.rowData.data !== this.props.rowData.data) return true;
+    if (props.rowData !== this.props.rowData) return true;
     return false;
   },
 
   handleLongPress(e) {
     this.refs.view.measure((frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
-      let layout = {frameX, frameY, frameWidth, frameHeight, pageX, pageY: pageY - 6};
+      let MAGIC_NUMBER = -6;
+      let layout = {
+        frameX,
+        frameY,
+        frameWidth,
+        frameHeight,
+        pageX,
+        pageY: pageY + MAGIC_NUMBER
+      };
 
       this.props.onLongPress({
         layout: layout,
         touch: e.nativeEvent,
-        rowData: this.props.rowData
+        rowData: this.props.rowData,
+        rowId: this.props.rowId,
       });
     });
   },
@@ -28,8 +45,8 @@ const Row = React.createClass({
 
   render() {
     let item = this.props.renderRow(
-      this.props.rowData.data,
-      this.props.rowData.rowId,
+      this.props.rowData,
+      this.props.rowId,
       {
         onLongPress: this.handleLongPress,
         onPressOut: this.handleLongPressOut,
@@ -38,7 +55,7 @@ const Row = React.createClass({
 
     return (
       <View onLayout={this.props.onRowLayout} ref="view">
-        {this.props.isHoveredOver && this.props.activeDivider}
+        {this.state.isHoveredOver && this.props.activeDivider}
         {item}
       </View>
     );

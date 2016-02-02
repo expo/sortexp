@@ -21,13 +21,14 @@ var GhostRow = React.createClass({
   render: function() {
     let {
       rowData,
+      rowId,
       layout,
       panY,
     } = this.props;
 
     let item = this.props.renderRow(
-      rowData.data,
-      rowData.rowId,
+      rowData,
+      rowId,
       { active: true },
     );
 

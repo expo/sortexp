@@ -37,9 +37,10 @@ const SortableListView = React.createClass({
     });
 
     return {
+      activeRowId: null,
+      activeLayout: null,
       dataSource: dataSource.cloneWithRows(items, sortOrder),
       isSorting: false,
-      activeRowId: null,
       panY: new Animated.Value(0)
     };
   },
@@ -190,7 +191,7 @@ const SortableListView = React.createClass({
 
     this.setState({
       isSorting: true,
-      activeRowId: row.rowData.rowId,
+      activeRowId: row.rowId,
       activeLayout: row.layout,
     }, this.scrollAnimation);
   },
@@ -254,7 +255,8 @@ const SortableListView = React.createClass({
         onLongPressOut={this._handleRowInactive}
         onRowLayout={layout => this.layoutMap[rowId] = layout.nativeEvent.layout}
         panResponder={this.state.panResponder}
-        rowData={{data, rowId}}
+        rowData={data}
+        rowId={rowId}
       />
     );
   },
