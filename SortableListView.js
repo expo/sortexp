@@ -107,7 +107,7 @@ const SortableListView = React.createClass({
 
   // ?????????????????
   scrollAnimation() {
-    if (this.isMounted() && this.state.activeRowId) {
+    if (this.isMounted() && this._isSorting()) {
       if (this.dragMoveY === null) {
         return requestAnimationFrame(this.scrollAnimation);
       }
@@ -186,12 +186,13 @@ const SortableListView = React.createClass({
 
     if (hoveredRowId !== newHoveredRowId) {
       let dividerHeight = activeRowId ? this.layoutMap[activeRowId].height : 0;
-
-      LayoutAnimation.linear();
-      this.state.sharedListData.dispatch({
+      let actionData = {
         type: 'SET_HOVERED_ROW_ID',
         hoveredRowId: newHoveredRowId,
-      });
+      };
+
+      LayoutAnimation.linear();
+      this.state.sharedListData.dispatch(actionData);
     }
   },
 
@@ -213,6 +214,7 @@ const SortableListView = React.createClass({
     this._list.setNativeProps({
       scrollEnabled: false,
     });
+    requestAnimationFrame(() => this.scrollAnimation());
   },
 
   /*

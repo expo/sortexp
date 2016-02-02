@@ -59,8 +59,6 @@ const SortableListRow = React.createClass({
   },
 
   handleLongPress(e) {
-    console.log('handleLongPress');
-
     this.refs.view.measure((frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
       let MAGIC_NUMBER = -6;
       let layout = {
