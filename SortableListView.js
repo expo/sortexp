@@ -15,6 +15,7 @@ const SCROLL_LOWER_BOUND = 100;
 const SCROLL_MAX_CHANGE = 15;
 
 const DEBUG_GESTURE = false;
+const DEBUG_SORT_EVENTS = false;
 
 const SortableListView = React.createClass({
   /*
@@ -202,7 +203,7 @@ const SortableListView = React.createClass({
       }
 
       this._checkTargetElement();
-      requestAnimationFrame(this._scrollAnimation);
+      setTimeout(this._scrollAnimation, 16 * 2);
     }
   },
 
@@ -257,7 +258,7 @@ const SortableListView = React.createClass({
         hoveredRowId: newHoveredRowId,
       };
 
-      LayoutAnimation.linear();
+      LayoutAnimation.easeInEaseOut();
       this.state.sharedListData.dispatch(actionData);
     }
   },
@@ -277,6 +278,8 @@ const SortableListView = React.createClass({
       type: 'START_SORTING',
     });
 
+    DEBUG_SORT_EVENTS && console.log('start sorting!');
+
     this._list.setNativeProps({
       scrollEnabled: false,
     });
@@ -291,7 +294,11 @@ const SortableListView = React.createClass({
    * _handleRowInactive from onLongPressOut
    */
   _handleRowInactive() {
+    DEBUG_SORT_EVENTS && console.log('stop sorting!');
+
     if (this._isSorting() && !this._isResponder) {
+      DEBUG_SORT_EVENTS && console.log('got into stop sorting block!');
+
       this.state.sharedListData.dispatch({
         type: 'STOP_SORTING',
       });

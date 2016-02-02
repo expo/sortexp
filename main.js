@@ -12,6 +12,8 @@ import React, {
   TouchableWithoutFeedback,
 } from 'react-native';
 
+import StaticContainer from 'react-native/Libraries/Components/StaticContainer';
+
 const TouchableComponent = TouchableOpacity;
 
 import range from 'lodash/range';
@@ -27,11 +29,19 @@ class ListItem extends React.Component {
     };
   }
 
+  componentWillMount() {
+    console.log({
+      mount: 'ListItem',
+      id: this.props.id,
+    });
+  }
+
   render() {
     let { item, sortableProps } = this.props;
 
     return (
       <TouchableComponent
+        key={`item-${this.props.id}`}
         {...sortableProps}
         onPress={() => { this._handleFocus() }}>
         <View
@@ -74,7 +84,7 @@ class DraggableExample extends React.Component {
     super(props);
 
     let identities = [];
-    let items = range(20).reduce((result, i) => {
+    let items = range(100).reduce((result, i) => {
       let key = `id-${i}`
       identities.push(key);
       result[key] = {text: i.toString()}
@@ -101,11 +111,13 @@ class DraggableExample extends React.Component {
 
   _renderRow(item, rowId, props) {
     return (
-      <ListItem
-        item={item}
-        id={rowId}
-        sortableProps={props}
-      />
+      <StaticContainer key={rowId} shouldUpdate={false}>
+        <ListItem
+          item={item}
+          id={rowId}
+          sortableProps={props}
+        />
+      </StaticContainer>
     );
   }
 }

@@ -67,7 +67,9 @@ const SortableListGhostRow = React.createClass({
     };
 
     return (
-      <Animated.View style={[styles.base, dynamicStyles]}>
+      <Animated.View
+        style={[styles.base, dynamicStyles]}
+        pointerEvents="none">
         {rowId && this.props.renderRow(rowData, rowId, {ghost: true})}
       </Animated.View>
     );

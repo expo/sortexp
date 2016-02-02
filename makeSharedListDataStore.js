@@ -15,7 +15,7 @@ const hoverReducer = defaultReducer({
   },
 
   START_SORTING(state, action) {
-    return null;
+    return action.activeRowId;
   },
 
   STOP_SORTING(state, action) {
@@ -52,7 +52,7 @@ const activeItemReducer = defaultReducer({
 
 export default () => {
   return createStore(combineReducers({
-    hoverRowId: hoverReducer,
+    hoveredRowId: hoverReducer,
     activeItemState: activeItemReducer,
   }));
 }
