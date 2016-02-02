@@ -100,13 +100,17 @@ const SortableListRow = React.createClass({
       },
     );
 
-    let { isActiveRow, isHoveredOver } = this.state;
+    let {
+      dividerHeight,
+      isActiveRow,
+      isHoveredOver,
+    } = this.state;
 
     let innerViews = [];
 
     if (isHoveredOver && !isActiveRow) {
       innerViews.push(
-        <View style={{height: this.state.dividerHeight}} key="divider" />
+        <View style={{height: dividerHeight}} key="divider" />
       );
     } else if (isHoveredOver && isActiveRow) {
       innerViews.push(item);
@@ -114,12 +118,6 @@ const SortableListRow = React.createClass({
 
     if (!isHoveredOver && !isActiveRow) {
       innerViews.push(item);
-    }
-
-
-    let { dividerHeight } = this.state;
-    if (dividerHeight) {
-      console.log({dividerHeight});
     }
 
     return (
