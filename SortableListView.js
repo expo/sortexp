@@ -35,11 +35,10 @@ const SortableListView = React.createClass({
   getInitialState() {
     let { items, sortOrder } = this.props;
     let dataSource = new ListView.DataSource({
-      rowHasChanged: (r1, r2) => true,
+      rowHasChanged: (r1, r2) => r1 !== r2,
     });
 
     return {
-      // TODO: remove these from local state! keep in sharedListData
       dataSource: dataSource.cloneWithRows(items, sortOrder),
       panY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
@@ -105,137 +104,6 @@ const SortableListView = React.createClass({
     this.scrollResponder = this._list.getScrollResponder();
   },
 
-  // ?????????????????
-  scrollAnimation() {
-    if (this.isMounted() && this._isSorting()) {
-      if (this.dragMoveY === null) {
-        return requestAnimationFrame(this.scrollAnimation);
-      }
-
-      let SCROLL_HIGHER_BOUND = this.listLayout.height - SCROLL_LOWER_BOUND;
-      let MAX_SCROLL_VALUE = this.scrollContainerHeight;
-      let currentScrollValue = this.mostRecentScrollOffset;
-      let newScrollValue = null;
-
-      if (this.dragMoveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
-        let PERCENTAGE_CHANGE = 1 - (this.dragMoveY / SCROLL_LOWER_BOUND);
-          newScrollValue = currentScrollValue - (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
-          if (newScrollValue < 0) newScrollValue = 0;
-      }
-
-      if (this.dragMoveY > SCROLL_HIGHER_BOUND && currentScrollValue < MAX_SCROLL_VALUE) {
-
-        let PERCENTAGE_CHANGE = 1 - ((this.listLayout.height - this.dragMoveY) / SCROLL_LOWER_BOUND);
-        newScrollValue = currentScrollValue + (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
-        if (newScrollValue > MAX_SCROLL_VALUE) newScrollValue = MAX_SCROLL_VALUE;
-      }
-
-      if (newScrollValue !== null) {
-        this.mostRecentScrollOffset = newScrollValue;
-        this.scrollResponder.scrollWithoutAnimationTo(this.mostRecentScrollOffset, 0);
-      }
-
-      this.checkTargetElement();
-      requestAnimationFrame(this.scrollAnimation);
-    }
-  },
-
-  findRowIdAtOffset(y) {
-    let { sortOrder } = this.props;
-    let { layoutMap } = this;
-
-    let heightAcc = 0;
-    let rowIdx = 0;
-    let rowLayout;
-
-    // Added heights for each row until you reach the target y
-    while (heightAcc < y) {
-      let rowId = sortOrder[rowIdx];
-      rowLayout = layoutMap[rowId];
-
-      // Are we somehow missing row layout? abort I guess?
-      if (!rowLayout) {
-        return;
-      }
-
-      // Add height to accumulator
-      heightAcc += rowLayout.height;
-      rowIdx = rowIdx + 1;
-    }
-
-    // Then return the rowId at that index
-    return sortOrder[rowIdx - 1];
-  },
-
-  findCurrentlyHoveredRow() {
-    let { mostRecentScrollOffset, dragMoveY } = this;
-    let absoluteDragOffsetInList = mostRecentScrollOffset + dragMoveY;
-
-    return this.findRowIdAtOffset(absoluteDragOffsetInList);
-  },
-
-  /*
-   * When we move the cursor we need to see what element we are hovering over.
-   * If the row we are hovering over has changed, then update our state to
-   * reflect that.
-   */
-  checkTargetElement() {
-    let { activeRowId } = this.state;
-    let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
-    let newHoveredRowId = this.findCurrentlyHoveredRow();
-
-    if (hoveredRowId !== newHoveredRowId) {
-      let dividerHeight = activeRowId ? this.layoutMap[activeRowId].height : 0;
-      let actionData = {
-        type: 'SET_HOVERED_ROW_ID',
-        hoveredRowId: newHoveredRowId,
-      };
-
-      LayoutAnimation.linear();
-      this.state.sharedListData.dispatch(actionData);
-    }
-  },
-
-  /*
-   * This is called from a row when it becomes active (when it is long-pressed)
-   */
-  _handleRowActive({rowId, layout}) {
-    this.state.panY.setValue(0);
-    let dividerHeight = rowId ? this.layoutMap[rowId].height : 0;
-
-    this.state.sharedListData.dispatch({
-      activeLayout: layout,
-      activeRowData: this.props.items[rowId],
-      activeRowId: rowId,
-      dividerHeight,
-      type: 'START_SORTING',
-    });
-
-    this._list.setNativeProps({
-      scrollEnabled: false,
-    });
-    requestAnimationFrame(() => this.scrollAnimation());
-  },
-
-  /*
-   * It is possible to be in sorting state without being responder, this
-   * happens when the underlying Touchable fires _handleRowActive but the
-   * user doesn't move their finger, so the PanResponder never grabs
-   * responder. To make sure this is always called, we fire
-   * _handleRowInactive from onLongPressOut
-   */
-  _handleRowInactive() {
-    if (this._isSorting() && !this._isResponder) {
-      this.state.sharedListData.dispatch({
-        type: 'STOP_SORTING',
-      });
-
-      this._list.setNativeProps({
-        scrollEnabled: true,
-      });
-    }
-  },
-
   render() {
     return (
       <View style={{flex: 1}}>
@@ -271,10 +139,6 @@ const SortableListView = React.createClass({
     );
   },
 
-  _getActiveItemState() {
-    return this.state.sharedListData.getState().activeItemState;
-  },
-
   renderGhostRow() {
     return (
       <SortableListGhostRow
@@ -284,10 +148,6 @@ const SortableListView = React.createClass({
         sharedListData={this.state.sharedListData}
       />
     );
-  },
-
-  _isSorting() {
-    return this._getActiveItemState().isSorting;
   },
 
   _handleScroll(e) {
@@ -302,6 +162,146 @@ const SortableListView = React.createClass({
   _handleRowLayout(rowId, e) {
     this.layoutMap[rowId] = e.nativeEvent.layout;
   },
+
+  _getActiveItemState() {
+    return this.state.sharedListData.getState().activeItemState;
+  },
+
+  _isSorting() {
+    return this._getActiveItemState().isSorting;
+  },
+
+  // ?????????????????
+  _scrollAnimation() {
+    if (this.isMounted() && this._isSorting()) {
+      if (this.dragMoveY === null) {
+        return requestAnimationFrame(this._scrollAnimation);
+      }
+
+      let SCROLL_HIGHER_BOUND = this.listLayout.height - SCROLL_LOWER_BOUND;
+      let MAX_SCROLL_VALUE = this.scrollContainerHeight;
+      let currentScrollValue = this.mostRecentScrollOffset;
+      let newScrollValue = null;
+
+      if (this.dragMoveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
+        let PERCENTAGE_CHANGE = 1 - (this.dragMoveY / SCROLL_LOWER_BOUND);
+          newScrollValue = currentScrollValue - (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
+          if (newScrollValue < 0) newScrollValue = 0;
+      }
+
+      if (this.dragMoveY > SCROLL_HIGHER_BOUND && currentScrollValue < MAX_SCROLL_VALUE) {
+
+        let PERCENTAGE_CHANGE = 1 - ((this.listLayout.height - this.dragMoveY) / SCROLL_LOWER_BOUND);
+        newScrollValue = currentScrollValue + (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
+        if (newScrollValue > MAX_SCROLL_VALUE) newScrollValue = MAX_SCROLL_VALUE;
+      }
+
+      if (newScrollValue !== null) {
+        this.mostRecentScrollOffset = newScrollValue;
+        this.scrollResponder.scrollWithoutAnimationTo(this.mostRecentScrollOffset, 0);
+      }
+
+      this._checkTargetElement();
+      requestAnimationFrame(this._scrollAnimation);
+    }
+  },
+
+  _findRowIdAtOffset(y) {
+    let { sortOrder } = this.props;
+    let { layoutMap } = this;
+
+    let heightAcc = 0;
+    let rowIdx = 0;
+    let rowLayout;
+
+    // Added heights for each row until you reach the target y
+    while (heightAcc < y) {
+      let rowId = sortOrder[rowIdx];
+      rowLayout = layoutMap[rowId];
+
+      // Are we somehow missing row layout? abort I guess?
+      if (!rowLayout) {
+        return;
+      }
+
+      // Add height to accumulator
+      heightAcc += rowLayout.height;
+      rowIdx = rowIdx + 1;
+    }
+
+    // Then return the rowId at that index
+    return sortOrder[rowIdx - 1];
+  },
+
+  _findCurrentlyHoveredRow() {
+    let { mostRecentScrollOffset, dragMoveY } = this;
+    let absoluteDragOffsetInList = mostRecentScrollOffset + dragMoveY;
+
+    return this._findRowIdAtOffset(absoluteDragOffsetInList);
+  },
+
+  /*
+   * When we move the cursor we need to see what element we are hovering over.
+   * If the row we are hovering over has changed, then update our state to
+   * reflect that.
+   */
+  _checkTargetElement() {
+    let { activeRowId } = this.state;
+    let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
+    let newHoveredRowId = this._findCurrentlyHoveredRow();
+
+    if (hoveredRowId !== newHoveredRowId) {
+      let dividerHeight = activeRowId ? this.layoutMap[activeRowId].height : 0;
+      let actionData = {
+        type: 'SET_HOVERED_ROW_ID',
+        hoveredRowId: newHoveredRowId,
+      };
+
+      LayoutAnimation.linear();
+      this.state.sharedListData.dispatch(actionData);
+    }
+  },
+
+  /*
+   * This is called from a row when it becomes active (when it is long-pressed)
+   */
+  _handleRowActive({rowId, layout}) {
+    this.state.panY.setValue(0);
+    let dividerHeight = rowId ? this.layoutMap[rowId].height : 0;
+
+    this.state.sharedListData.dispatch({
+      activeLayout: layout,
+      activeRowData: this.props.items[rowId],
+      activeRowId: rowId,
+      dividerHeight,
+      type: 'START_SORTING',
+    });
+
+    this._list.setNativeProps({
+      scrollEnabled: false,
+    });
+    requestAnimationFrame(() => this._scrollAnimation());
+  },
+
+  /*
+   * It is possible to be in sorting state without being responder, this
+   * happens when the underlying Touchable fires _handleRowActive but the
+   * user doesn't move their finger, so the PanResponder never grabs
+   * responder. To make sure this is always called, we fire
+   * _handleRowInactive from onLongPressOut
+   */
+  _handleRowInactive() {
+    if (this._isSorting() && !this._isResponder) {
+      this.state.sharedListData.dispatch({
+        type: 'STOP_SORTING',
+      });
+
+      this._list.setNativeProps({
+        scrollEnabled: true,
+      });
+    }
+  },
+
 });
 
 export default SortableListView;

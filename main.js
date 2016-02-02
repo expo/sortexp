@@ -31,10 +31,11 @@ class ListItem extends React.Component {
     let { item, sortableProps } = this.props;
 
     return (
-      <TouchableComponent {...sortableProps}>
+      <TouchableComponent
+        {...sortableProps}
+        onPress={() => { this._handleFocus() }}>
         <View
           style={styles.row}
-          elevation={sortableProps.thumb ? 3 : 0}
           pointerEvents={this.state.isFocused ? 'auto' : 'none'}>
           <View style={styles.bulletContainer}>
             <View style={styles.bullet} />
