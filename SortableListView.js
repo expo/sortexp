@@ -7,14 +7,15 @@ import React, {
   View,
 } from 'react-native';
 
-import Row from './Row';
+import SortableListRow from './SortableListRow';
 import GhostRow from './GhostRow';
+import makeSharedListDataStore from 'makeSharedListDataStore';
 
 const SCROLL_LOWER_BOUND = 100;
 const SCROLL_MAX_CHANGE = 15;
+const DEBUG_GESTURE = true;
 
 const SortableListView = React.createClass({
-
   /*
    * Keep track of layouts of each row
    */
@@ -37,11 +38,13 @@ const SortableListView = React.createClass({
     });
 
     return {
-      activeRowId: null,
+      // TODO: remove these from local state! keep in sharedListData
       activeLayout: null,
+      activeRowId: null,
       dataSource: dataSource.cloneWithRows(items, sortOrder),
       isSorting: false,
-      panY: new Animated.Value(0)
+      panY: new Animated.Value(0),
+      sharedListData: makeSharedListDataStore(),
     };
   },
 
@@ -55,25 +58,33 @@ const SortableListView = React.createClass({
       onMoveShouldSetPanResponderCapture: onlyIfSorting,
 
       onPanResponderGrant: () => {
+        DEBUG_GESTURE && console.log('grant');
         this._isResponder = true;
         this.state.panY.setOffset(0);
         this.state.panY.setValue(0);
       },
 
       onPanResponderMove: (evt, gestureState) => {
+        DEBUG_GESTURE && console.log('move');
         this.dragMoveY = gestureState.moveY;
         this.state.panY.setValue(gestureState.dy);
       },
 
       onPanResponderReject: () => {
+        DEBUG_GESTURE && console.log('reject');
         this._isResponder = false;
+        this._handleRowInactive();
       },
 
       onPanResponderTerminate: () => {
+        DEBUG_GESTURE && console.log('terminate');
         this._isResponder = false;
+        this._handleRowInactive();
       },
 
       onPanResponderRelease: () => {
+        DEBUG_GESTURE && console.log('release');
+        this.dragMoveY = null;
         this._isResponder = false;
         this._handleRowInactive();
       }
@@ -169,14 +180,19 @@ const SortableListView = React.createClass({
    * reflect that.
    */
   checkTargetElement() {
-    let { hoveredRowId, activeRowId } = this.state;
+    let { activeRowId } = this.state;
+    let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
     let newHoveredRowId = this.findCurrentlyHoveredRow();
 
     if (hoveredRowId !== newHoveredRowId) {
-      LayoutAnimation.linear();
+      let dividerHeight = activeRowId ? this.layoutMap[activeRowId].height : 0;
 
-      this.setState({
+      LayoutAnimation.linear();
+      this.state.sharedListData.dispatch({
+        type: 'SET_HOVERED_ROW_ID',
+        activeRowId,
         hoveredRowId: newHoveredRowId,
+        dividerHeight,
       });
     }
   },
@@ -184,16 +200,23 @@ const SortableListView = React.createClass({
   /*
    * This is called from a row when it becomes active (when it is long-pressed)
    */
-  _handleRowActive(row) {
+  _handleRowActive({rowId, layout}) {
     this.state.panY.setValue(0);
 
-    LayoutAnimation.linear();
+    let dividerHeight = rowId ? this.layoutMap[rowId].height : 0;
 
     this.setState({
       isSorting: true,
-      activeRowId: row.rowId,
-      activeLayout: row.layout,
+      activeRowId: rowId,
+      activeLayout: layout,
     }, this.scrollAnimation);
+
+    this.state.sharedListData.dispatch({
+      type: 'START_SORTING',
+      activeRowId: rowId,
+      hoveredRowId: null,
+      dividerHeight,
+    });
   },
 
   /*
@@ -208,7 +231,10 @@ const SortableListView = React.createClass({
       this.setState({
         activeRowId: null,
         isSorting: false,
-        hoveredRowId: null
+      });
+
+      this.state.sharedListData.dispatch({
+        type: 'STOP_SORTING',
       });
     }
   },
@@ -241,43 +267,39 @@ const SortableListView = React.createClass({
       extraProps.layout = this.state.activeLayout;
       extraProps.panY = this.state.panY;
     } else {
-      RowComponent = Row;
+      RowComponent = SortableListRow;
     }
+
+    console.log(
+      {key: rowId}
+    );
 
     return (
       <RowComponent
         {...this.props}
         {...extraProps}
-        activeDivider={this.renderActiveDivider()}
         isHoveredOver={this.state.hoveringRowId === rowId}
         key={rowId}
         onLongPress={this._handleRowActive}
-        onLongPressOut={this._handleRowInactive}
+        onPressOut={this._handleRowInactive}
         onRowLayout={layout => this.layoutMap[rowId] = layout.nativeEvent.layout}
         panResponder={this.state.panResponder}
         rowData={data}
         rowId={rowId}
+        sharedListData={this.state.sharedListData}
       />
     );
   },
 
   renderGhostItem() {
-    if (!this.state.activeRowId) return;
     let itemId = this.state.activeRowId;
+
+    if (!itemId) {
+      return;
+    }
+
     let item = this.props.items[itemId];
-
     return this.renderRow(item, itemId, {isGhost: true});
-  },
-
-  /*
-   * The divider creates a space in an view to indicate where the drop location
-   * will be
-   */
-  renderActiveDivider() {
-    let { activeRowId } = this.state;
-    let height = activeRowId ? this.layoutMap[activeRowId].height : 0;
-
-    return <View style={{height}} />;
   },
 
   _handleScroll(e) {

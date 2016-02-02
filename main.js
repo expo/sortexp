@@ -31,10 +31,7 @@ class ListItem extends React.Component {
     let { item, sortableProps } = this.props;
 
     return (
-      <TouchableComponent
-        {...sortableProps}
-        onPress={() => this._handleFocus() }
-        delayLongPress={250}>
+      <TouchableComponent {...sortableProps}>
         <View
           style={styles.row}
           elevation={sortableProps.thumb ? 3 : 0}
@@ -47,7 +44,6 @@ class ListItem extends React.Component {
             underlineColorAndroid="transparent"
             onFocus={this._handleFocus.bind(this)}
             onBlur={this._handleBlur.bind(this)}
-            onLongPress={() => React.Alert.alert('wut')}
             ref={view => { this._textInput = view; }}
             style={styles.textInput}
             value={item.text} />

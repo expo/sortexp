@@ -9,10 +9,12 @@
     "abiVersion": "UNVERSIONED"
   },
   "dependencies": {
+    "fbemitter": "^2.0.1",
     "lodash": "^4.1.0",
     "react-mixin": "^3.0.3",
     "react-motion": "^0.4.2",
     "react-native": "github:exponentjs/react-native#2016-01-02",
-    "react-timer-mixin": "^0.13.3"
+    "react-timer-mixin": "^0.13.3",
+    "redux": "^3.2.0"
   }
 }
