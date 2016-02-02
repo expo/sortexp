@@ -34,13 +34,13 @@ const SortableListView = React.createClass({
   dragMoveY: null,
 
   getInitialState() {
-    let { items, sortOrder } = this.props;
+    let { items, order } = this.props;
     let dataSource = new ListView.DataSource({
       rowHasChanged: (r1, r2) => r1 !== r2,
     });
 
     return {
-      dataSource: dataSource.cloneWithRows(items, sortOrder),
+      dataSource: dataSource.cloneWithRows(items, order),
       panY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
     };
@@ -84,6 +84,7 @@ const SortableListView = React.createClass({
         DEBUG_GESTURE && console.log('release');
         this.dragMoveY = null;
         this._isResponder = false;
+        this._maybeFireOnChangeOrder();
         this._handleRowInactive();
       }
      });
@@ -94,9 +95,9 @@ const SortableListView = React.createClass({
 
     // TODO: should use immutable for this, call toArray when passing into cloneWithRows
     if (nextProps.items !== this.props.items ||
-        nextProps.sortOrder !== this.props.sortOrder) {
+        nextProps.order !== this.props.order) {
       this.setState({
-        dataSource: dataSource.cloneWithRows(nextProps.items, nextProps.sortOrder),
+        dataSource: dataSource.cloneWithRows(nextProps.items, nextProps.order),
       });
     }
   },
@@ -127,7 +128,6 @@ const SortableListView = React.createClass({
     return (
       <SortableListRow
         {...this.props}
-        isHoveredOver={this.state.hoveringRowId === rowId}
         key={rowId}
         onLongPress={this._handleRowActive}
         onPressOut={this._handleRowInactive}
@@ -149,6 +149,17 @@ const SortableListView = React.createClass({
         sharedListData={this.state.sharedListData}
       />
     );
+  },
+
+  _maybeFireOnChangeOrder() {
+    let sharedState = this.state.sharedListData.getState();
+    let { hoveredRowId } = sharedState;
+    let { activeRowId } = sharedState.activeItemState;
+
+    if (hoveredRowId !== activeRowId) {
+      this.props.onChangeOrder &&
+        this.props.onChangeOrder(activeRowId, this.props.order.indexOf(hoveredRowId));
+    }
   },
 
   _handleScroll(e) {
@@ -208,7 +219,7 @@ const SortableListView = React.createClass({
   },
 
   _findRowIdAtOffset(y) {
-    let { sortOrder } = this.props;
+    let { order } = this.props;
     let { layoutMap } = this;
 
     let heightAcc = 0;
@@ -217,7 +228,7 @@ const SortableListView = React.createClass({
 
     // Added heights for each row until you reach the target y
     while (heightAcc < y) {
-      let rowId = sortOrder[rowIdx];
+      let rowId = order[rowIdx];
       rowLayout = layoutMap[rowId];
 
       // Are we somehow missing row layout? abort I guess?
@@ -231,7 +242,7 @@ const SortableListView = React.createClass({
     }
 
     // Then return the rowId at that index
-    return sortOrder[rowIdx - 1];
+    return order[rowIdx - 1];
   },
 
   _findCurrentlyHoveredRow() {

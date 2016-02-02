@@ -17,6 +17,7 @@ import StaticContainer from 'react-native/Libraries/Components/StaticContainer';
 const TouchableComponent = TouchableOpacity;
 
 import range from 'lodash/range';
+import reinsert from './reinsert';
 import SortableListView from './SortableListView';
 
 class ListItem extends React.Component {
@@ -83,17 +84,17 @@ class DraggableExample extends React.Component {
   constructor(props) {
     super(props);
 
-    let identities = [];
+    let order = [];
     let items = range(100).reduce((result, i) => {
       let key = `id-${i}`
-      identities.push(key);
+      order.push(key);
       result[key] = {text: i.toString()}
       return result;
     }, {});
 
     this.state = {
       items,
-      identities,
+      order,
     };
   }
 
@@ -101,12 +102,23 @@ class DraggableExample extends React.Component {
     return (
       <View style={{marginTop: 25, flex: 1,}}>
         <SortableListView
-          renderRow={this._renderRow}
           items={this.state.items}
-          sortOrder={this.state.identities}
+          onChangeOrder={this._handleOrderChange.bind(this)}
+          order={this.state.order}
+          renderRow={this._renderRow}
         />
       </View>
     );
+  }
+
+  _handleOrderChange(id, newIndex) {
+    let order = reinsert(
+      this.state.order,
+      this.state.order.indexOf(id),
+      newIndex,
+    );
+
+    this.setState({order});
   }
 
   _renderRow(item, rowId, props) {
