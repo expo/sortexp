@@ -9,7 +9,7 @@ var {
   TouchableWithoutFeedback
 } = React;
 
-var SortRow = React.createClass({
+var GhostRow = React.createClass({
 
   getInitialState: function() {
     // TODO: yikes, reaching into another component's state
@@ -20,6 +20,7 @@ var SortRow = React.createClass({
     return {
       style: {
         position: 'absolute',
+        elevation: 3,
         left: 0,
         right: 0,
         height: layout.frameHeight,
@@ -43,7 +44,6 @@ var SortRow = React.createClass({
 
     return (
       <Animated.View
-        elevation={3}
         style={[this.state.style, this.props.list.state.pan.getLayout()]}>
         {item}
       </Animated.View>
@@ -51,4 +51,4 @@ var SortRow = React.createClass({
   }
 });
 
-export default SortRow;
+export default GhostRow;

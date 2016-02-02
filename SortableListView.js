@@ -10,7 +10,7 @@ var {
 } = React;
 
 import Row from './Row';
-import SortRow from './SortRow';
+import GhostRow from './GhostRow';
 
 var SortableListView = React.createClass({
 
@@ -246,7 +246,7 @@ var SortableListView = React.createClass({
   },
 
   renderRow: function(data, rowId, props = {}) {
-    let Component = props.isGhost ? SortRow : Row;
+    let Component = props.isGhost ? GhostRow : Row;
     let isActiveRow = this.state.active && this.state.active.rowData.rowId === rowId;
 
     return (

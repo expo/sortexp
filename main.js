@@ -57,7 +57,6 @@ class ListItem extends React.Component {
   }
 
   _handleFocus() {
-    console.log('call handle!');
     if (!this.state.isFocused) {
       this.setState({isFocused: true});
       requestAnimationFrame(() => {
