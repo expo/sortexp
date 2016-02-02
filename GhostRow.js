@@ -44,7 +44,7 @@ var GhostRow = React.createClass({
 
     return (
       <Animated.View
-        style={[this.state.style, this.props.list.state.pan.getLayout()]}>
+        style={[this.state.style, {top: this.props.list.state.panY}]}>
         {item}
       </Animated.View>
     );

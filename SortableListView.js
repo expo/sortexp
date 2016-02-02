@@ -20,51 +20,38 @@ var SortableListView = React.createClass({
   // Keep track of the current scroll position
   mostRecentScrollOffset: 0,
 
-  // ???????
+  // Current y offset of the pan gesture
   dragMoveY: null,
 
   getInitialState: function() {
-    let {
-      items,
-      sortOrder,
-    } = this.props;
-
-    let currentPanValue = {
-      x: 0,
-      y: 0,
-    };
-
+    let { items, sortOrder } = this.props;
     let dataSource = new ListView.DataSource({
       rowHasChanged: (r1, r2) => r1 !== r2,
     });
 
-    this.state = {
+    return {
       dataSource: dataSource.cloneWithRows(items, sortOrder),
       isSorting: false,
       activeRowId: null,
-      pan: new Animated.ValueXY(currentPanValue)
+      panY: new Animated.Value(0)
     };
+  },
 
-    let eventCallback = Animated.event([null, {
-       dx: this.state.pan.x,
-       dy: this.state.pan.y,
-    }]);
-
-    this.state.panResponder = PanResponder.create({
+  componentWillMount() {
+    this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder: () => this.state.isSorting,
       onMoveShouldSetResponderCapture: () => this.state.isSorting,
       onMoveShouldSetPanResponder: () => this.state.isSorting,
       onMoveShouldSetPanResponderCapture: () => this.state.isSorting,
       onPanResponderMove: (evt, gestureState) => {
-        gestureState.dx = 0;
         this.dragMoveY = gestureState.moveY;
-        eventCallback(evt, gestureState);
+        this.state.panY.setValue(gestureState.dy);
       },
 
       onPanResponderGrant: (e, gestureState) => {
         this._isResponder = true;
-        this.state.pan.setOffset(currentPanValue);
-        this.state.pan.setValue(currentPanValue);
+        this.state.panY.setOffset(0);
+        this.state.panY.setValue(0);
       },
 
       onPanResponderReject: (e, gestureState) => {
@@ -80,8 +67,6 @@ var SortableListView = React.createClass({
         this._handleRowInactive();
       }
      });
-
-    return this.state;
   },
 
   componentWillReceiveProps(nextProps) {
@@ -95,7 +80,7 @@ var SortableListView = React.createClass({
   },
 
   componentDidMount: function() {
-    this.scrollResponder = this.refs.list.getScrollResponder();
+    this.scrollResponder = this._list.getScrollResponder();
   },
 
   // ?????????????????
@@ -186,7 +171,7 @@ var SortableListView = React.createClass({
 
   // This is called from a Row when it becomes active
   _handleRowActive: function(row) {
-    this.state.pan.setValue({x: 0, y: 0});
+    this.state.panY.setValue(0);
 
     LayoutAnimation.linear();
 
@@ -216,9 +201,18 @@ var SortableListView = React.createClass({
    * will be */
   renderActiveDivider: function() {
     let { activeRowId } = this.state;
-    let height = activeRowId ? this.layoutMap[activeRowId] : 0;
+    let height = activeRowId ? this.layoutMap[activeRowId].height : 0;
 
     return <View style={{height}} />;
+  },
+
+  _handleScroll(e) {
+    this.mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
+    this.scrollContainerHeight = e.nativeEvent.contentSize.height;
+  },
+
+  _handleListLayout(e) {
+    this.listLayout = e.nativeEvent.layout;
   },
 
   render: function() {
@@ -226,18 +220,13 @@ var SortableListView = React.createClass({
       <View style={{flex: 1}}>
         <ListView
           {...this.props}
-          {...this.state.panResponder.panHandlers}
-          ref="list"
+          {...this.panResponder.panHandlers}
+          ref={view => { this._list = view; }}
           dataSource={this.state.dataSource}
-          onScroll={e => {
-            this.mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
-            this.scrollContainerHeight = e.nativeEvent.contentSize.height;
-          }}
-          onLayout={(e) => this.listLayout = e.nativeEvent.layout}
+          onScroll={this._handleScroll}
+          onLayout={this._handleListLayout}
           scrollEnabled={!this.state.isSorting}
-          renderRow={(data, _unused, rowId, __unused, ___unused) => {
-            return this.renderRow(data, rowId);
-          }}
+          renderRow={(data, __unused, rowId) => this.renderRow(data, rowId)}
         />
 
         {this.renderGhostItem()}
@@ -273,7 +262,6 @@ var SortableListView = React.createClass({
 
     return this.renderRow(item, itemId, {isGhost: true});
   },
-
 });
 
 export default SortableListView;
