@@ -15,7 +15,7 @@ const hoverReducer = defaultReducer({
   },
 
   START_SORTING(state, action) {
-    return action.hoveredRowId;
+    return null;
   },
 
   STOP_SORTING(state, action) {
@@ -35,18 +35,17 @@ const activeItemReducer = defaultReducer({
   START_SORTING(state, action) {
     return {
       activeRowId: action.activeRowId,
+      activeLayout: action.activeLayout,
+      activeRowData: action.activeRowData,
       dividerHeight: action.dividerHeight,
+      isSorting: true,
     };
   },
 
   STOP_SORTING(state, action) {
-    return {};
-  },
-
-  SET_ACTIVE_ITEM(state, action) {
     return {
-      activeRowId: action.activeRowId,
-      dividerHeight: action.dividerHeight,
+      ...state,
+      isSorting: false,
     };
   },
 });

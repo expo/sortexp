@@ -1,46 +1,74 @@
-var React = require('react-native');
-
-var {
+import React, {
   Animated,
   StyleSheet,
   View,
-} = React;
+} from 'react-native';
 
-var SortableListGhostRow = React.createClass({
+// This is supposed to account for "top bar spacing" in original version
+// of this, not sure what that means
+const MAGIC_NUMBER = 20;
 
-  shouldComponentUpdate() {
-    // TODO: update this
-    return true;
+const SortableListGhostRow = React.createClass({
+
+  getInitialState() {
+    return {
+      opacity: new Animated.Value(0),
+    };
   },
 
-  getInitialState: function() {
-    // TODO: fade it out when we release touch
-    return {};
+  componentWillMount() {
+    let updateState = () => {
+      let data = this.props.sharedListData.getState().activeItemState;
+      let { activeLayout, activeRowId, activeRowData, isSorting } = data;
+
+      this.setState({
+        layout: activeLayout,
+        rowId: activeRowId,
+        rowData: activeRowData,
+        isSorting,
+      });
+    }
+
+    this._unsubscribe = this.props.sharedListData.subscribe(updateState);
+    updateState();
   },
 
-  render: function() {
-    let {
-      rowData,
-      rowId,
-      layout,
-      panY,
-    } = this.props;
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.isSorting && !this.state.isSorting) {
+      Animated.spring(this.state.opacity, {toValue: 0}).start();
+    } else if (!prevState.isSorting && this.state.isSorting) {
+      Animated.spring(this.state.opacity, {toValue: 1}).start();
+    }
+  },
 
-    let item = this.props.renderRow(
-      rowData,
-      rowId,
-      { active: true },
-    );
+  componentWillUnmount() {
+    this._unsubscribe && this._unsubscribe();
+    this._unsubscribe = null;
+  },
+
+  render() {
+    let { rowData, rowId, layout, opacity, isSorting } = this.state;
+    let { panY } = this.props;
+
+    let height = 0;
+    let marginTop = 0;
+
+    if (layout) {
+      height = layout.frameHeight;
+      marginTop = layout.pageY - MAGIC_NUMBER;
+    }
 
     let dynamicStyles = {
+      height,
+      marginTop,
+      opacity,
       top: panY,
-      height: layout.frameHeight,
-      marginTop: layout.pageY - 20, // Account for top bar spacing (???)
+      elevation: opacity.interpolate({inputRange: [0, 1], outputRange: [0, 3]}),
     };
 
     return (
       <Animated.View style={[styles.base, dynamicStyles]}>
-        {item}
+        {rowId && this.props.renderRow(rowData, rowId, {ghost: true})}
       </Animated.View>
     );
   }
@@ -49,7 +77,6 @@ var SortableListGhostRow = React.createClass({
 const styles = StyleSheet.create({
   base: {
     position: 'absolute',
-    elevation: 3,
     left: 0,
     right: 0,
     overflow: 'hidden',

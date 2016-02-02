@@ -13,7 +13,8 @@ import makeSharedListDataStore from 'makeSharedListDataStore';
 
 const SCROLL_LOWER_BOUND = 100;
 const SCROLL_MAX_CHANGE = 15;
-const DEBUG_GESTURE = true;
+
+const DEBUG_GESTURE = false;
 
 const SortableListView = React.createClass({
   /*
@@ -39,17 +40,14 @@ const SortableListView = React.createClass({
 
     return {
       // TODO: remove these from local state! keep in sharedListData
-      activeLayout: null,
-      activeRowId: null,
       dataSource: dataSource.cloneWithRows(items, sortOrder),
-      isSorting: false,
       panY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
     };
   },
 
   componentWillMount() {
-    let onlyIfSorting = () => this.state.isSorting;
+    let onlyIfSorting = () => this._isSorting();
 
     this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder: onlyIfSorting,
@@ -92,11 +90,13 @@ const SortableListView = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
+    let { dataSource } = this.state;
+
     // TODO: should use immutable for this, call toArray when passing into cloneWithRows
     if (nextProps.items !== this.props.items ||
         nextProps.sortOrder !== this.props.sortOrder) {
       this.setState({
-        dataSource: this.state.dataSource.cloneWithRows(nextProps.items, nextProps.sortOrder),
+        dataSource: dataSource.cloneWithRows(nextProps.items, nextProps.sortOrder),
       });
     }
   },
@@ -190,9 +190,7 @@ const SortableListView = React.createClass({
       LayoutAnimation.linear();
       this.state.sharedListData.dispatch({
         type: 'SET_HOVERED_ROW_ID',
-        activeRowId,
         hoveredRowId: newHoveredRowId,
-        dividerHeight,
       });
     }
   },
@@ -202,20 +200,18 @@ const SortableListView = React.createClass({
    */
   _handleRowActive({rowId, layout}) {
     this.state.panY.setValue(0);
-
     let dividerHeight = rowId ? this.layoutMap[rowId].height : 0;
 
-    this.setState({
-      isSorting: true,
-      activeRowId: rowId,
-      activeLayout: layout,
-    }, this.scrollAnimation);
-
     this.state.sharedListData.dispatch({
-      type: 'START_SORTING',
+      activeLayout: layout,
+      activeRowData: this.props.items[rowId],
       activeRowId: rowId,
-      hoveredRowId: null,
       dividerHeight,
+      type: 'START_SORTING',
+    });
+
+    this._list.setNativeProps({
+      scrollEnabled: false,
     });
   },
 
@@ -227,14 +223,13 @@ const SortableListView = React.createClass({
    * _handleRowInactive from onLongPressOut
    */
   _handleRowInactive() {
-    if (this.state.isSorting && !this._isResponder) {
-      this.setState({
-        activeRowId: null,
-        isSorting: false,
-      });
-
+    if (this._isSorting() && !this._isResponder) {
       this.state.sharedListData.dispatch({
         type: 'STOP_SORTING',
+      });
+
+      this._list.setNativeProps({
+        scrollEnabled: true,
       });
     }
   },
@@ -249,7 +244,6 @@ const SortableListView = React.createClass({
           dataSource={this.state.dataSource}
           onScroll={this._handleScroll}
           onLayout={this._handleListLayout}
-          scrollEnabled={!this.state.isSorting}
           renderRow={(data, __unused, rowId) => this.renderRow(data, rowId)}
         />
 
@@ -275,24 +269,23 @@ const SortableListView = React.createClass({
     );
   },
 
+  _getActiveItemState() {
+    return this.state.sharedListData.getState().activeItemState;
+  },
+
   renderGhostRow() {
-    let rowId = this.state.activeRowId;
-    let data = this.props.items[rowId];
-
-    if (!data) {
-      return;
-    }
-
     return (
       <SortableListGhostRow
-        key={`ghost-${rowId}`}
-        layout={this.state.activeLayout}
+        key={`ghost`}
         panY={this.state.panY}
         renderRow={this.props.renderRow}
-        rowData={data}
-        rowId={rowId}
+        sharedListData={this.state.sharedListData}
       />
     );
+  },
+
+  _isSorting() {
+    return this._getActiveItemState().isSorting;
   },
 
   _handleScroll(e) {

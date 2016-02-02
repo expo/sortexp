@@ -5,4 +5,3 @@ export default function reinsert(arr, from, to) {
   _arr.splice(to, 0, val);
   return _arr;
 }
-

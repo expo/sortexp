@@ -35,12 +35,13 @@ const SortableListRow = React.createClass({
       this.setState(nextState);
     }
 
-    this._subscription = this.props.sharedListData.subscribe(updateHoverState);
+    this._unsubscribe = this.props.sharedListData.subscribe(updateHoverState);
     updateHoverState();
   },
 
   componentWillUnmount() {
-    this._subscription && this._subscription.remove();
+    this._unsubscribe && this._unsubscribe();
+    this._unsubscribe = null;
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -94,9 +95,11 @@ const SortableListRow = React.createClass({
     let item = this.props.renderRow(
       this.props.rowData,
       this.props.rowId,
-      { onLongPress: this.handleLongPress,
+      {
+        onLongPress: this.handleLongPress,
         onPressOut: this.handlePressOut,
-        onPress: this.handlePress, },
+        onPress: this.handlePress,
+      },
     );
 
     let { isActiveRow, isHoveredOver } = this.state;
@@ -113,6 +116,12 @@ const SortableListRow = React.createClass({
 
     if (!isHoveredOver && !isActiveRow) {
       innerViews.push(item);
+    }
+
+
+    let { dividerHeight } = this.state;
+    if (dividerHeight) {
+      console.log({dividerHeight});
     }
 
     return (
