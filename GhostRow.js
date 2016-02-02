@@ -1,53 +1,61 @@
 var React = require('react-native');
 
 var {
-  ListView,
-  LayoutAnimation,
-  View,
   Animated,
-  PanResponder,
-  TouchableWithoutFeedback
+  StyleSheet,
+  View,
 } = React;
 
 var GhostRow = React.createClass({
 
+  shouldComponentUpdate() {
+    // TODO: update this
+    return true;
+  },
+
   getInitialState: function() {
-    // TODO: fade it out when we release
-    return {
-    };
+    // TODO: fade it out when we release touch
+    return {};
   },
 
   render: function() {
+    let {
+      rowData,
+      layout,
+      panY,
+    } = this.props;
+
     let item = this.props.renderRow(
-      this.props.rowData.data,
-      this.props.rowData.rowId,
+      rowData.data,
+      rowData.rowId,
       { active: true },
     );
 
-    // TODO: yikes, reaching into another component's state
-    let rowId = this.props.list.state.activeRowId;
-    let layout = this.props.list.state.activeLayout;
-    let rowLayout = this.props.list.layoutMap[rowId];
-
-    let style = {
-      position: 'absolute',
-      elevation: 3,
-      left: 0,
-      right: 0,
+    let dynamicStyles = {
+      top: panY,
       height: layout.frameHeight,
-      overflow: 'hidden',
-      backgroundColor: 'transparent',
-      borderWidth: 0.5,
-      borderColor: '#eee',
       marginTop: layout.pageY - 20, // Account for top bar spacing (???)
     };
 
     return (
-      <Animated.View style={[style, {top: this.props.list.state.panY}]}>
+      <Animated.View style={[styles.base, dynamicStyles]}>
         {item}
       </Animated.View>
     );
   }
+});
+
+const styles = StyleSheet.create({
+  base: {
+    position: 'absolute',
+    elevation: 3,
+    left: 0,
+    right: 0,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    borderWidth: 0.5,
+    borderColor: '#eee',
+  },
 });
 
 export default GhostRow;

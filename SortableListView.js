@@ -26,7 +26,7 @@ var SortableListView = React.createClass({
   getInitialState: function() {
     let { items, sortOrder } = this.props;
     let dataSource = new ListView.DataSource({
-      rowHasChanged: (r1, r2) => r1 !== r2,
+      rowHasChanged: (r1, r2) => true,
     });
 
     return {
@@ -165,7 +165,7 @@ var SortableListView = React.createClass({
 
       this.setState({
         hoveredRowId: newHoveredRowId,
-      })
+      });
     }
   },
 
@@ -235,17 +235,24 @@ var SortableListView = React.createClass({
   },
 
   renderRow: function(data, rowId, props = {}) {
-    let Component = props.isGhost ? GhostRow : Row;
-    let isActiveRow = this.state.active && this.state.active.rowData.rowId === rowId;
+    let RowComponent;
+    let extraProps = {};
+
+    if (props.isGhost) {
+      RowComponent = GhostRow;
+      extraProps.layout = this.state.activeLayout;
+      extraProps.panY = this.state.panY;
+    } else {
+      RowComponent = Row;
+    }
 
     return (
-      <Component
+      <RowComponent
         {...this.props}
-        active={isActiveRow}
+        {...extraProps}
         activeDivider={this.renderActiveDivider()}
-        hovering={this.state.hoveringRowId === rowId}
+        isHoveredOver={this.state.hoveringRowId === rowId}
         key={rowId}
-        list={this}
         onLongPress={this._handleRowActive}
         onLongPressOut={this._handleRowInactive}
         onRowLayout={layout => this.layoutMap[rowId] = layout.nativeEvent.layout}
