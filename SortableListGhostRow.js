@@ -6,7 +6,7 @@ var {
   View,
 } = React;
 
-var GhostRow = React.createClass({
+var SortableListGhostRow = React.createClass({
 
   shouldComponentUpdate() {
     // TODO: update this
@@ -59,4 +59,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GhostRow;
+export default SortableListGhostRow;

@@ -8,7 +8,7 @@ import React, {
 } from 'react-native';
 
 import SortableListRow from './SortableListRow';
-import GhostRow from './GhostRow';
+import SortableListGhostRow from './SortableListGhostRow';
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
 const SCROLL_LOWER_BOUND = 100;
@@ -253,36 +253,20 @@ const SortableListView = React.createClass({
           renderRow={(data, __unused, rowId) => this.renderRow(data, rowId)}
         />
 
-        {this.renderGhostItem()}
+        {this.renderGhostRow()}
       </View>
     );
   },
 
   renderRow(data, rowId, props = {}) {
-    let RowComponent;
-    let extraProps = {};
-
-    if (props.isGhost) {
-      RowComponent = GhostRow;
-      extraProps.layout = this.state.activeLayout;
-      extraProps.panY = this.state.panY;
-    } else {
-      RowComponent = SortableListRow;
-    }
-
-    console.log(
-      {key: rowId}
-    );
-
     return (
-      <RowComponent
+      <SortableListRow
         {...this.props}
-        {...extraProps}
         isHoveredOver={this.state.hoveringRowId === rowId}
         key={rowId}
         onLongPress={this._handleRowActive}
         onPressOut={this._handleRowInactive}
-        onRowLayout={layout => this.layoutMap[rowId] = layout.nativeEvent.layout}
+        onRowLayout={this._handleRowLayout.bind(this, rowId)}
         panResponder={this.state.panResponder}
         rowData={data}
         rowId={rowId}
@@ -291,15 +275,24 @@ const SortableListView = React.createClass({
     );
   },
 
-  renderGhostItem() {
-    let itemId = this.state.activeRowId;
+  renderGhostRow() {
+    let rowId = this.state.activeRowId;
+    let data = this.props.items[rowId];
 
-    if (!itemId) {
+    if (!data) {
       return;
     }
 
-    let item = this.props.items[itemId];
-    return this.renderRow(item, itemId, {isGhost: true});
+    return (
+      <SortableListGhostRow
+        key={`ghost-${rowId}`}
+        layout={this.state.activeLayout}
+        panY={this.state.panY}
+        renderRow={this.props.renderRow}
+        rowData={data}
+        rowId={rowId}
+      />
+    );
   },
 
   _handleScroll(e) {
@@ -309,6 +302,10 @@ const SortableListView = React.createClass({
 
   _handleListLayout(e) {
     this.listLayout = e.nativeEvent.layout;
+  },
+
+  _handleRowLayout(rowId, e) {
+    this.layoutMap[rowId] = e.nativeEvent.layout;
   },
 });
 
