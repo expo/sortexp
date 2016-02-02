@@ -1,23 +1,16 @@
-var React = require('react-native');
-
-var {
-  ListView,
-  LayoutAnimation,
+import React, {
   View,
-  Animated,
-  PanResponder,
-  TouchableWithoutFeedback
-} = React;
+} from 'react-native';
 
-var Row = React.createClass({
+const Row = React.createClass({
 
-  shouldComponentUpdate: function(props) {
+  shouldComponentUpdate(props) {
     if (props.isHoveredOver !== this.props.isHoveredOver) return true;
     if (props.rowData.data !== this.props.rowData.data) return true;
     return false;
   },
 
-  handleLongPress: function(e) {
+  handleLongPress(e) {
     this.refs.view.measure((frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
       let layout = {frameX, frameY, frameWidth, frameHeight, pageX, pageY: pageY - 6};
 
@@ -29,11 +22,11 @@ var Row = React.createClass({
     });
   },
 
-  handleLongPressOut: function(e) {
+  handleLongPressOut(e) {
     this.props.onLongPressOut && this.props.onLongPressOut();
   },
 
-  render: function() {
+  render() {
     let item = this.props.renderRow(
       this.props.rowData.data,
       this.props.rowData.rowId,

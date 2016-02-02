@@ -1,29 +1,36 @@
-var React = require('react-native');
-
-var {
-  ListView,
-  LayoutAnimation,
-  View,
+import React, {
   Animated,
+  LayoutAnimation,
+  ListView,
   PanResponder,
-  TouchableWithoutFeedback
-} = React;
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 
 import Row from './Row';
 import GhostRow from './GhostRow';
 
-var SortableListView = React.createClass({
+const SCROLL_LOWER_BOUND = 100;
+const SCROLL_MAX_CHANGE = 15;
 
-  // Keep track of layouts of each row
+const SortableListView = React.createClass({
+
+  /*
+   * Keep track of layouts of each row
+   */
   layoutMap: {},
 
-  // Keep track of the current scroll position
+  /*
+   * Keep track of the current scroll position
+   */
   mostRecentScrollOffset: 0,
 
-  // Current y offset of the pan gesture
+  /*
+   * Current y offset of the pan gesture
+   */
   dragMoveY: null,
 
-  getInitialState: function() {
+  getInitialState() {
     let { items, sortOrder } = this.props;
     let dataSource = new ListView.DataSource({
       rowHasChanged: (r1, r2) => true,
@@ -38,23 +45,26 @@ var SortableListView = React.createClass({
   },
 
   componentWillMount() {
-    this.panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => this.state.isSorting,
-      onMoveShouldSetResponderCapture: () => this.state.isSorting,
-      onMoveShouldSetPanResponder: () => this.state.isSorting,
-      onMoveShouldSetPanResponderCapture: () => this.state.isSorting,
-      onPanResponderMove: (evt, gestureState) => {
-        this.dragMoveY = gestureState.moveY;
-        this.state.panY.setValue(gestureState.dy);
-      },
+    let onlyIfSorting = () => this.state.isSorting;
 
-      onPanResponderGrant: (e, gestureState) => {
+    this.panResponder = PanResponder.create({
+      onStartShouldSetPanResponder: onlyIfSorting,
+      onMoveShouldSetResponderCapture: onlyIfSorting,
+      onMoveShouldSetPanResponder: onlyIfSorting,
+      onMoveShouldSetPanResponderCapture: onlyIfSorting,
+
+      onPanResponderGrant: () => {
         this._isResponder = true;
         this.state.panY.setOffset(0);
         this.state.panY.setValue(0);
       },
 
-      onPanResponderReject: (e, gestureState) => {
+      onPanResponderMove: (evt, gestureState) => {
+        this.dragMoveY = gestureState.moveY;
+        this.state.panY.setValue(gestureState.dy);
+      },
+
+      onPanResponderReject: () => {
         this._isResponder = false;
       },
 
@@ -62,7 +72,7 @@ var SortableListView = React.createClass({
         this._isResponder = false;
       },
 
-      onPanResponderRelease: (e) => {
+      onPanResponderRelease: () => {
         this._isResponder = false;
         this._handleRowInactive();
       }
@@ -79,23 +89,21 @@ var SortableListView = React.createClass({
     }
   },
 
-  componentDidMount: function() {
+  componentDidMount() {
     this.scrollResponder = this._list.getScrollResponder();
   },
 
   // ?????????????????
-  scrollAnimation: function() {
+  scrollAnimation() {
     if (this.isMounted() && this.state.activeRowId) {
       if (this.dragMoveY === null) {
         return requestAnimationFrame(this.scrollAnimation);
       }
 
-      let SCROLL_LOWER_BOUND = 100;
       let SCROLL_HIGHER_BOUND = this.listLayout.height - SCROLL_LOWER_BOUND;
       let MAX_SCROLL_VALUE = this.scrollContainerHeight;
       let currentScrollValue = this.mostRecentScrollOffset;
       let newScrollValue = null;
-      let SCROLL_MAX_CHANGE = 15;
 
       if (this.dragMoveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
         let PERCENTAGE_CHANGE = 1 - (this.dragMoveY / SCROLL_LOWER_BOUND);
@@ -124,9 +132,9 @@ var SortableListView = React.createClass({
     let { sortOrder } = this.props;
     let { layoutMap } = this;
 
-    let heightAcc = 0; // wut
-    let rowIdx = 0; // wut
-    let rowLayout; // wut
+    let heightAcc = 0;
+    let rowIdx = 0;
+    let rowLayout;
 
     // Added heights for each row until you reach the target y
     while (heightAcc < y) {
@@ -154,8 +162,11 @@ var SortableListView = React.createClass({
     return this.findRowIdAtOffset(absoluteDragOffsetInList);
   },
 
-  // TODO: rewrite this, super confusing!
-  // When we move the cursor we need to see what element we are hovering over
+  /*
+   * When we move the cursor we need to see what element we are hovering over.
+   * If the row we are hovering over has changed, then update our state to
+   * reflect that.
+   */
   checkTargetElement() {
     let { hoveredRowId, activeRowId } = this.state;
     let newHoveredRowId = this.findCurrentlyHoveredRow();
@@ -169,8 +180,10 @@ var SortableListView = React.createClass({
     }
   },
 
-  // This is called from a Row when it becomes active
-  _handleRowActive: function(row) {
+  /*
+   * This is called from a row when it becomes active (when it is long-pressed)
+   */
+  _handleRowActive(row) {
     this.state.panY.setValue(0);
 
     LayoutAnimation.linear();
@@ -182,11 +195,13 @@ var SortableListView = React.createClass({
     }, this.scrollAnimation);
   },
 
-  /* It is possible to be in sorting state without being responder, this
+  /*
+   * It is possible to be in sorting state without being responder, this
    * happens when the underlying Touchable fires _handleRowActive but the
    * user doesn't move their finger, so the PanResponder never grabs
    * responder. To make sure this is always called, we fire
-   * _handleRowInactive from onLongPressOut */
+   * _handleRowInactive from onLongPressOut
+   */
   _handleRowInactive() {
     if (this.state.isSorting && !this._isResponder) {
       this.setState({
@@ -197,25 +212,7 @@ var SortableListView = React.createClass({
     }
   },
 
-  /* The divider creates a space in an view to indicate where the drop location
-   * will be */
-  renderActiveDivider: function() {
-    let { activeRowId } = this.state;
-    let height = activeRowId ? this.layoutMap[activeRowId].height : 0;
-
-    return <View style={{height}} />;
-  },
-
-  _handleScroll(e) {
-    this.mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
-    this.scrollContainerHeight = e.nativeEvent.contentSize.height;
-  },
-
-  _handleListLayout(e) {
-    this.listLayout = e.nativeEvent.layout;
-  },
-
-  render: function() {
+  render() {
     return (
       <View style={{flex: 1}}>
         <ListView
@@ -234,7 +231,7 @@ var SortableListView = React.createClass({
     );
   },
 
-  renderRow: function(data, rowId, props = {}) {
+  renderRow(data, rowId, props = {}) {
     let RowComponent;
     let extraProps = {};
 
@@ -262,12 +259,32 @@ var SortableListView = React.createClass({
     );
   },
 
-  renderGhostItem: function() {
+  renderGhostItem() {
     if (!this.state.activeRowId) return;
     let itemId = this.state.activeRowId;
     let item = this.props.items[itemId];
 
     return this.renderRow(item, itemId, {isGhost: true});
+  },
+
+  /*
+   * The divider creates a space in an view to indicate where the drop location
+   * will be
+   */
+  renderActiveDivider() {
+    let { activeRowId } = this.state;
+    let height = activeRowId ? this.layoutMap[activeRowId].height : 0;
+
+    return <View style={{height}} />;
+  },
+
+  _handleScroll(e) {
+    this.mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
+    this.scrollContainerHeight = e.nativeEvent.contentSize.height;
+  },
+
+  _handleListLayout(e) {
+    this.listLayout = e.nativeEvent.layout;
   },
 });
 
