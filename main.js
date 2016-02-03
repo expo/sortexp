@@ -12,8 +12,6 @@ import React, {
   TouchableWithoutFeedback,
 } from 'react-native';
 
-import StaticContainer from 'react-native/Libraries/Components/StaticContainer';
-
 const TouchableComponent = TouchableOpacity;
 
 import range from 'lodash/range';
@@ -124,13 +122,12 @@ class DraggableExample extends React.Component {
 
   _renderRow(item, rowId, props) {
     return (
-      <StaticContainer key={rowId} shouldUpdate={false}>
-        <ListItem
-          item={item}
-          id={rowId}
-          sortableProps={props}
-        />
-      </StaticContainer>
+      <ListItem
+        key={rowId}
+        item={item}
+        id={rowId}
+        sortableProps={props}
+      />
     );
   }
 }

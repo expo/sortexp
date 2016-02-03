@@ -1,4 +1,5 @@
 import React, {
+  PropTypes,
   View,
 } from 'react-native';
 
@@ -8,6 +9,11 @@ const DEBUG_HOVER = false;
 const DEBUG_LIFECYCLE = true;
 
 const SortableListRow = React.createClass({
+
+  propTypes: {
+    // TODO: fill this in
+  },
+
   getInitialState() {
     return {
       dividerHeight: 0,

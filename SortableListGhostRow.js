@@ -1,5 +1,6 @@
 import React, {
   Animated,
+  PropTypes,
   StyleSheet,
   View,
 } from 'react-native';
@@ -9,6 +10,10 @@ import React, {
 const MAGIC_NUMBER = 20;
 
 const SortableListGhostRow = React.createClass({
+
+  propTypes: {
+    // TODO: fill this in
+  },
 
   getInitialState() {
     return {

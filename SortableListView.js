@@ -3,9 +3,12 @@ import React, {
   LayoutAnimation,
   ListView,
   PanResponder,
+  PropTypes,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+
+import StaticContainer from 'react-native/Libraries/Components/StaticContainer';
 
 import SortableListRow from './SortableListRow';
 import SortableListGhostRow from './SortableListGhostRow';
@@ -19,6 +22,39 @@ const DEBUG_SORT_EVENTS = false;
 const DEBUG_CHANGE_ROWS = false;
 
 const SortableListView = React.createClass({
+
+  propTypes: {
+    /*
+     * An object where the keys are the id's of the items and the values are
+     * the data. Order is specified in the `order` prop, which is an array
+     * of the keys used here.
+     */
+    items: PropTypes.object.isRequired,
+
+    /*
+     * Callback that is provide with the `id` of the row that is being moved
+     * and the new index.
+     */
+    onChangeOrder: PropTypes.func.isRequired,
+
+    /*
+     * An array of the keys from `items` which specifies the order
+     */
+    order: PropTypes.array.isRequired,
+
+    /*
+     * Should return the component instance for the given:
+     * rowData, rowId, props
+     *
+     * If the props has the key `ghost` it means that the
+     * row is being rendered to be dragged around, so you
+     * probably want to display only the minimal content required
+     * for that (no need for any of your touchable components or
+     * that kind of thing).
+     */
+    renderRow: PropTypes.func.isRequired,
+  },
+
   /*
    * Keep track of layouts of each row
    */
@@ -37,7 +73,7 @@ const SortableListView = React.createClass({
   getInitialState() {
     let { items, order } = this.props;
     let dataSource = new ListView.DataSource({
-      rowHasChanged: (r1, r2) => r1 !== r2,
+      rowHasChanged: (r1, r2) => false,
     });
 
     return {
