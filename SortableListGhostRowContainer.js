@@ -5,10 +5,13 @@ import React, {
   View,
 } from 'react-native';
 
-const SortableListGhostRow = React.createClass({
+const SortableListGhostRowContainer = React.createClass({
 
   propTypes: {
-    // TODO: fill this in
+    panY: PropTypes.object.isRequired,
+    snapY: PropTypes.object.isRequired,
+    renderRow: PropTypes.func.isRequired,
+    sharedListData: PropTypes.object.isRequired,
   },
 
   getInitialState() {
@@ -101,4 +104,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SortableListGhostRow;
+export default SortableListGhostRowContainer;

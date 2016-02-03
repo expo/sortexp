@@ -8,10 +8,16 @@ import { shallowEquals, shallowEqualsIgnoreKeys } from 'ShallowEquals';
 const DEBUG_HOVER = false;
 const DEBUG_LIFECYCLE = false;
 
-const SortableListRow = React.createClass({
+const SortableListRowContainer = React.createClass({
 
   propTypes: {
-    // TODO: fill this in
+    onLongPress: PropTypes.func.isRequired,
+    onPressOut: PropTypes.func.isRequired,
+    onRowLayout: PropTypes.func.isRequired,
+    renderRow: PropTypes.func.isRequired,
+    rowData: PropTypes.any.isRequired,
+    rowId: PropTypes.oneOf([PropTypes.string, PropTypes.number]).isRequired,
+    sharedListData: PropTypes.object.isRequired,
   },
 
   getInitialState() {
@@ -144,8 +150,14 @@ const SortableListRow = React.createClass({
     let innerViews = [];
 
     if (dividerIsVisible) {
+      // TODO: this style is hardcoded, should have a renderDivider func
+      // to make this customizable
       innerViews.push(
-        <View style={{height: dividerHeight, borderBottomWidth: 1, borderBottomColor: '#eee'}} key="divider" />
+        <View style={{
+          height: dividerHeight,
+          borderBottomWidth: 1,
+          borderBottomColor: '#eee'
+        }} key="divider" />
       );
     }
 
@@ -170,4 +182,4 @@ const SortableListRow = React.createClass({
   }
 });
 
-export default SortableListRow;
+export default SortableListRowContainer;

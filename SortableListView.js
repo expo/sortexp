@@ -11,8 +11,8 @@ import React, {
 import TimerMixin from 'react-timer-mixin';
 
 import IncrementalListView from 'IncrementalListView';
-import SortableListGhostRow from './SortableListGhostRow';
-import SortableListRow from './SortableListRow';
+import SortableListGhostRowContainer from './SortableListGhostRowContainer';
+import SortableListRowContainer from './SortableListRowContainer';
 
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
@@ -210,14 +210,13 @@ const SortableListView = React.createClass({
 
   renderRow(data, rowId, props = {}) {
     return (
-      <SortableListRow
+      <SortableListRowContainer
         {...this.props}
         key={rowId}
         ref={view => { this._rowRefs[rowId] = view; }}
         onLongPress={this._handleRowActive}
         onPressOut={this._handleRowInactive}
         onRowLayout={this._handleRowLayout.bind(this, rowId)}
-        panResponder={this.state.panResponder}
         rowData={data}
         rowId={rowId}
         sharedListData={this.state.sharedListData}
@@ -227,7 +226,7 @@ const SortableListView = React.createClass({
 
   renderGhostRow() {
     return (
-      <SortableListGhostRow
+      <SortableListGhostRowContainer
         key="ghost"
         panY={this.state.panY}
         snapY={this.state.snapY}
@@ -378,7 +377,7 @@ const SortableListView = React.createClass({
       LayoutAnimation.easeInEaseOut();
       this.state.sharedListData.dispatch(actionData);
 
-
+      // TODO: update temporary ordering
       // Save hovered row as previous updated
       // Make sure that we update all numbers between that one and current one
     }
