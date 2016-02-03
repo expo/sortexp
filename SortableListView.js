@@ -422,7 +422,8 @@ const SortableListView = React.createClass({
       // Make sure that we update all numbers between that one and current one
     }
 
-    this.setTimeout(this._maybeUpdateHoveredRow, 16 * 5);
+    // TODO: do this less frequently on worse devices?
+    this.requestAnimationFrame(this._maybeUpdateHoveredRow);
   },
 
   /*
