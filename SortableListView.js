@@ -422,7 +422,7 @@ const SortableListView = React.createClass({
       // Make sure that we update all numbers between that one and current one
     }
 
-    this.setTimeout(this._maybeUpdateHoveredRow, 16 * 3);
+    this.setTimeout(this._maybeUpdateHoveredRow, 16 * 5);
   },
 
   /*

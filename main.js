@@ -91,7 +91,7 @@ class DraggableExample extends React.Component {
 
   render() {
     return (
-      <View style={{marginTop: 200, flex: 1,}}>
+      <View style={{marginTop: 25, flex: 1,}}>
         <SortableListView
           items={this.state.items}
           onChangeOrder={this._handleOrderChange.bind(this)}
