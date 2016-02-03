@@ -81,10 +81,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    overflow: 'hidden',
     backgroundColor: 'transparent',
     borderWidth: 0.5,
     borderColor: '#eee',
+    shadowColor: '#eee',
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
   },
 });
 

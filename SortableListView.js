@@ -21,17 +21,17 @@ const SortableListView = React.createClass({
   /*
    * Keep track of layouts of each row
    */
-  layoutMap: {},
+  _layoutMap: {},
 
   /*
    * Keep track of the current scroll position
    */
-  mostRecentScrollOffset: 0,
+  _mostRecentScrollOffset: 0,
 
   /*
    * Current y offset of the pan gesture
    */
-  dragMoveY: null,
+  _dragMoveY: null,
 
   getInitialState() {
     let { items, order } = this.props;
@@ -64,7 +64,7 @@ const SortableListView = React.createClass({
 
       onPanResponderMove: (evt, gestureState) => {
         DEBUG_GESTURE && console.log('move');
-        this.dragMoveY = gestureState.moveY;
+        this._dragMoveY = gestureState.moveY;
         this.state.panY.setValue(gestureState.dy);
       },
 
@@ -82,7 +82,7 @@ const SortableListView = React.createClass({
 
       onPanResponderRelease: () => {
         DEBUG_GESTURE && console.log('release');
-        this.dragMoveY = null;
+        this._dragMoveY = null;
         this._isResponder = false;
         this._maybeFireOnChangeOrder();
         this._handleRowInactive();
@@ -102,8 +102,12 @@ const SortableListView = React.createClass({
     }
   },
 
-  componentDidMount() {
-    this.scrollResponder = this._list.getScrollResponder();
+  scrollTo(y) {
+    this._list.getScrollResponder().scrollTo(y);
+  },
+
+  scrollWithoutAnimationTo(y) {
+    this._list.getScrollResponder().scrollWithoutAnimationTo(y);
   },
 
   render() {
@@ -163,16 +167,16 @@ const SortableListView = React.createClass({
   },
 
   _handleScroll(e) {
-    this.mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
+    this._mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
     this.scrollContainerHeight = e.nativeEvent.contentSize.height;
   },
 
   _handleListLayout(e) {
-    this.listLayout = e.nativeEvent.layout;
+    this._listLayout = e.nativeEvent.layout;
   },
 
   _handleRowLayout(rowId, e) {
-    this.layoutMap[rowId] = e.nativeEvent.layout;
+    this._layoutMap[rowId] = e.nativeEvent.layout;
   },
 
   _getActiveItemState() {
@@ -186,41 +190,41 @@ const SortableListView = React.createClass({
   // ?????????????????
   _scrollAnimation() {
     if (this.isMounted() && this._isSorting()) {
-      if (this.dragMoveY === null) {
+      if (this._dragMoveY === null) {
         return requestAnimationFrame(this._scrollAnimation);
       }
 
-      let SCROLL_HIGHER_BOUND = this.listLayout.height - SCROLL_LOWER_BOUND;
+      let SCROLL_HIGHER_BOUND = this._listLayout.height - SCROLL_LOWER_BOUND;
       let MAX_SCROLL_VALUE = this.scrollContainerHeight;
-      let currentScrollValue = this.mostRecentScrollOffset;
+      let currentScrollValue = this._mostRecentScrollOffset;
       let newScrollValue = null;
 
-      if (this.dragMoveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
-        let PERCENTAGE_CHANGE = 1 - (this.dragMoveY / SCROLL_LOWER_BOUND);
+      if (this._dragMoveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
+        let PERCENTAGE_CHANGE = 1 - (this._dragMoveY / SCROLL_LOWER_BOUND);
           newScrollValue = currentScrollValue - (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
           if (newScrollValue < 0) newScrollValue = 0;
       }
 
-      if (this.dragMoveY > SCROLL_HIGHER_BOUND && currentScrollValue < MAX_SCROLL_VALUE) {
+      if (this._dragMoveY > SCROLL_HIGHER_BOUND && currentScrollValue < MAX_SCROLL_VALUE) {
 
-        let PERCENTAGE_CHANGE = 1 - ((this.listLayout.height - this.dragMoveY) / SCROLL_LOWER_BOUND);
+        let PERCENTAGE_CHANGE = 1 - ((this._listLayout.height - this._dragMoveY) / SCROLL_LOWER_BOUND);
         newScrollValue = currentScrollValue + (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
         if (newScrollValue > MAX_SCROLL_VALUE) newScrollValue = MAX_SCROLL_VALUE;
       }
 
       if (newScrollValue !== null) {
-        this.mostRecentScrollOffset = newScrollValue;
-        this.scrollResponder.scrollWithoutAnimationTo(this.mostRecentScrollOffset, 0);
+        this._mostRecentScrollOffset = newScrollValue;
+        this.scrollWithoutAnimationTo(this._mostRecentScrollOffset, 0);
       }
 
       this._checkTargetElement();
-      setTimeout(this._scrollAnimation, 16 * 2);
+      setTimeout(this._scrollAnimation, 16.6);
     }
   },
 
   _findRowIdAtOffset(y) {
     let { order } = this.props;
-    let { layoutMap } = this;
+    let { _layoutMap } = this;
 
     let heightAcc = 0;
     let rowIdx = 0;
@@ -229,7 +233,7 @@ const SortableListView = React.createClass({
     // Added heights for each row until you reach the target y
     while (heightAcc < y) {
       let rowId = order[rowIdx];
-      rowLayout = layoutMap[rowId];
+      rowLayout = _layoutMap[rowId];
 
       // Are we somehow missing row layout? abort I guess?
       if (!rowLayout) {
@@ -246,8 +250,8 @@ const SortableListView = React.createClass({
   },
 
   _findCurrentlyHoveredRow() {
-    let { mostRecentScrollOffset, dragMoveY } = this;
-    let absoluteDragOffsetInList = mostRecentScrollOffset + dragMoveY;
+    let { _mostRecentScrollOffset, _dragMoveY } = this;
+    let absoluteDragOffsetInList = _mostRecentScrollOffset + _dragMoveY;
 
     return this._findRowIdAtOffset(absoluteDragOffsetInList);
   },
@@ -262,8 +266,8 @@ const SortableListView = React.createClass({
     let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
     let newHoveredRowId = this._findCurrentlyHoveredRow();
 
-    if (hoveredRowId !== newHoveredRowId) {
-      let dividerHeight = activeRowId ? this.layoutMap[activeRowId].height : 0;
+    if (hoveredRowId !== newHoveredRowId && newHoveredRowId) {
+      let dividerHeight = activeRowId ? this._layoutMap[activeRowId].height : 0;
       let actionData = {
         type: 'SET_HOVERED_ROW_ID',
         hoveredRowId: newHoveredRowId,
@@ -279,7 +283,7 @@ const SortableListView = React.createClass({
    */
   _handleRowActive({rowId, layout}) {
     this.state.panY.setValue(0);
-    let dividerHeight = rowId ? this.layoutMap[rowId].height : 0;
+    let dividerHeight = rowId ? this._layoutMap[rowId].height : 0;
 
     this.state.sharedListData.dispatch({
       activeLayout: layout,
