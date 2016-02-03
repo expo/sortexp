@@ -1,7 +1,7 @@
-export default function reinsert(arr, from, to) {
-  const _arr = arr.slice(0);
-  const val = _arr[from];
-  _arr.splice(from, 1);
-  _arr.splice(to, 0, val);
-  return _arr;
+export default function reinsert(array, fromIndex, toIndex) {
+  if (fromIndex < toIndex) {
+    toIndex = toIndex - 1;
+  }
+  array.splice(toIndex, 0, array.splice(fromIndex, 1)[0] );
+  return array;
 }

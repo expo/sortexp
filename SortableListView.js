@@ -16,6 +16,7 @@ const SCROLL_MAX_CHANGE = 15;
 
 const DEBUG_GESTURE = false;
 const DEBUG_SORT_EVENTS = false;
+const DEBUG_CHANGE_ROWS = false;
 
 const SortableListView = React.createClass({
   /*
@@ -161,6 +162,11 @@ const SortableListView = React.createClass({
     let { activeRowId } = sharedState.activeItemState;
 
     if (hoveredRowId !== activeRowId) {
+      DEBUG_CHANGE_ROWS && console.log({
+        moveRow: activeRowId,
+        toPositionAboveRow: hoveredRowId,
+      });
+
       this.props.onChangeOrder &&
         this.props.onChangeOrder(activeRowId, this.props.order.indexOf(hoveredRowId));
     }
