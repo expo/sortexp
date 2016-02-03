@@ -117,10 +117,14 @@ const SortableListView = React.createClass({
     };
 
     this.panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: onlyIfSorting.bind(this, 'onStartShouldSetPanResponder'),
-      onMoveShouldSetResponderCapture: onlyIfSorting.bind(this, 'onMoveShouldSetResponderCapture'),
-      onMoveShouldSetPanResponder: onlyIfSorting.bind(this, 'onMoveShouldSetPanResponder'),
-      onMoveShouldSetPanResponderCapture: onlyIfSorting.bind(this, 'onMoveShouldSetPanResponderCapture'),
+      onStartShouldSetPanResponder:
+        onlyIfSorting.bind(this, 'onStartShouldSetPanResponder'),
+      onMoveShouldSetResponderCapture:
+        onlyIfSorting.bind(this, 'onMoveShouldSetResponderCapture'),
+      onMoveShouldSetPanResponder:
+        onlyIfSorting.bind(this, 'onMoveShouldSetPanResponder'),
+      onMoveShouldSetPanResponderCapture:
+        onlyIfSorting.bind(this, 'onMoveShouldSetPanResponderCapture'),
 
       onPanResponderGrant: (e, gestureState) => {
         DEBUG_GESTURE && console.log('grant');
@@ -139,7 +143,6 @@ const SortableListView = React.createClass({
           activeLayout,
           _initialTouchOffset: this._initialTouchOffset,
         });
-
       },
 
       onPanResponderMove: (e, gestureState) => {
@@ -320,7 +323,6 @@ const SortableListView = React.createClass({
     let currentScrollOffset = this._mostRecentScrollOffset;
     let newScrollOffset = null;
     let relativeDragMoveY = _dragMoveY - this._layoutOffset;
-
 
     if (relativeDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
       // Auto scroll up
