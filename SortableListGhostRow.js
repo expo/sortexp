@@ -36,10 +36,10 @@ const SortableListGhostRow = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.isSorting && !this.state.isSorting) {
-      Animated.timing(this.state.opacity, {toValue: 0, duration: 250}).start();
+      Animated.timing(this.state.opacity, {toValue: 0, duration: 200}).start();
     } else if (!prevState.isSorting && this.state.isSorting) {
       requestAnimationFrame(() => {
-        Animated.timing(this.state.opacity, {fromValue: 0.5, toValue: 1, duration: 200}).start();
+        Animated.timing(this.state.opacity, {fromValue: 0.5, toValue: 1, duration: 100}).start();
       });
     }
   },
@@ -70,7 +70,7 @@ const SortableListGhostRow = React.createClass({
     if (isSorting) {
       dynamicStyles.marginTop = marginTop;
       dynamicStyles.top = panY;
-      dynamicStyles.elevation = opacity.interpolate({inputRange: [0, 0.99, 1], outputRange: [0, 0, 4]});
+      dynamicStyles.elevation = opacity.interpolate({inputRange: [0, 0.999, 1], outputRange: [0, 0, 5]});
     } else {
       dynamicStyles.marginTop = 0;
       dynamicStyles.top = snapY;

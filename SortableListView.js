@@ -244,7 +244,7 @@ const SortableListView = React.createClass({
     if (hoveredRowId) {
       this._rowRefs[hoveredRowId].measure(layout => {
         Animated.timing(this.state.snapY, {
-          toValue: layout.pageY - MAGIC_NUMBER, duration: 150
+          toValue: layout.pageY - MAGIC_NUMBER, duration: 100
         }).start();
       });
     }
