@@ -26,6 +26,7 @@ const DEBUG_GESTURE = false;
 const DEBUG_SORT_EVENTS = false;
 const DEBUG_CHANGE_ROWS = false;
 const DEBUG_SNAP = false;
+const DEBUG_SCROLL = true;
 
 const SortableListView = React.createClass({
 
@@ -272,6 +273,10 @@ const SortableListView = React.createClass({
   },
 
   _handleScroll(e) {
+    DEBUG_SCROLL && console.log({
+      contentOffset: e.nativeEvent.contentOffset,
+    });
+
     this._mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
   },
 
@@ -281,19 +286,8 @@ const SortableListView = React.createClass({
       this._listLayout = e.nativeEvent.layout;
 
       // Get the actual offset of the container
-      UIManager.measure(this._list.getInnerViewNode(), (frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
+      UIManager.measure(this._list.getInnerViewNode(), (__, ___, ____, _____, ______, pageY) => {
         this._layoutOffset = pageY;
-        console.log({
-          measurements: {
-            frameX,
-            frameY,
-            frameWidth,
-            frameHeight,
-            pageX,
-            pageY,
-          },
-          layout: this._listLayout,
-        });
       });
     }
   },
