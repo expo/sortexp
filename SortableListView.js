@@ -20,9 +20,9 @@ const AUTOSCROLL_OFFSET_THRESHOLD = 100;
 const SCROLL_MAX_CHANGE = 15;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
 
-const DEBUG_GESTURE = true;
-const DEBUG_SORT_EVENTS = true;
-const DEBUG_CHANGE_ROWS = true;
+const DEBUG_GESTURE = false;
+const DEBUG_SORT_EVENTS = false;
+const DEBUG_CHANGE_ROWS = false;
 
 const SortableListView = React.createClass({
 
@@ -90,31 +90,30 @@ const SortableListView = React.createClass({
   },
 
   componentWillMount() {
-    let onlyIfSorting = () => this._isSorting();
+    let onlyIfSorting = (lifecycle) => {
+      DEBUG_GESTURE && console.log({
+        responderLifecycle: lifecycle,
+        isSorting: this._isSorting(),
+      });
+
+      return this._isSorting();
+    };
 
     this.panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: onlyIfSorting,
-      onMoveShouldSetResponderCapture: onlyIfSorting,
-      onMoveShouldSetPanResponder: onlyIfSorting,
-      onMoveShouldSetPanResponderCapture: onlyIfSorting,
+      onStartShouldSetPanResponder: onlyIfSorting.bind(this, 'onStartShouldSetPanResponder'),
+      onMoveShouldSetResponderCapture: onlyIfSorting.bind(this, 'onMoveShouldSetResponderCapture'),
+      onMoveShouldSetPanResponder: onlyIfSorting.bind(this, 'onMoveShouldSetPanResponder'),
+      onMoveShouldSetPanResponderCapture: onlyIfSorting.bind(this, 'onMoveShouldSetPanResponderCapture'),
 
       onPanResponderGrant: () => {
         DEBUG_GESTURE && console.log('grant');
         this._isResponder = true;
-        this.state.panY.setOffset(0);
-        this.state.panY.setValue(0);
       },
 
       onPanResponderMove: (evt, gestureState) => {
         DEBUG_GESTURE && console.log('move');
         this._dragMoveY = gestureState.moveY;
         this.state.panY.setValue(gestureState.dy);
-      },
-
-      onPanResponderReject: () => {
-        DEBUG_GESTURE && console.log('reject');
-        this._isResponder = false;
-        this._handleRowInactive();
       },
 
       onPanResponderTerminate: () => {
@@ -204,6 +203,10 @@ const SortableListView = React.createClass({
     let { hoveredRowId } = sharedState;
     let { activeRowId } = sharedState.activeItemState;
 
+    if (hoveredRowId === null) {
+      return;
+    }
+
     if (hoveredRowId !== activeRowId) {
       DEBUG_CHANGE_ROWS && console.log({
         moveRow: activeRowId,
@@ -232,7 +235,7 @@ const SortableListView = React.createClass({
   },
 
   _isSorting() {
-    return this._getActiveItemState().isSorting;
+    return !!this._getActiveItemState().isSorting;
   },
 
   _maybeAutoScroll() {
@@ -332,12 +335,13 @@ const SortableListView = React.createClass({
    * This is called from a row when it becomes active (when it is long-pressed)
    */
   _handleRowActive({rowId, layout}) {
-    this.state.panY.setValue(0);
     if (!rowId) {
       return;
     }
 
-    let dividerHeight = this._layoutMap[rowId].height;
+    // Reset our pan value!
+    this.state.panY.setOffset(0);
+    this.state.panY.setValue(0);
 
     // We need to initialize this or it will be null and we will have some
     // problems if the user doesn't scroll
@@ -347,7 +351,7 @@ const SortableListView = React.createClass({
       activeLayout: layout,
       activeRowData: this.props.items[rowId],
       activeRowId: rowId,
-      dividerHeight,
+      dividerHeight: this._layoutMap[rowId].height,
       type: 'START_SORTING',
     });
 
