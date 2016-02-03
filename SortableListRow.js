@@ -93,18 +93,24 @@ const SortableListRow = React.createClass({
     return stateHasChanged || propsHaveChanged;
   },
 
-  handleLongPress(e) {
-    this.refs.view.measure((frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
-      let MAGIC_NUMBER = -6;
+  measure(callback) {
+    this._view.measure((frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
+      let OTHER_MAGIC_NUMBER = -6;
       let layout = {
         frameX,
         frameY,
         frameWidth,
         frameHeight,
         pageX,
-        pageY: pageY + MAGIC_NUMBER
+        pageY: pageY + OTHER_MAGIC_NUMBER
       };
 
+      callback(layout);
+    });
+  },
+
+  handleLongPress(e) {
+    this.measure(layout => {
       this.props.onLongPress({
         layout: layout,
         touch: e.nativeEvent,
@@ -139,7 +145,7 @@ const SortableListRow = React.createClass({
 
     if (dividerIsVisible) {
       innerViews.push(
-        <View style={{height: dividerHeight}} key="divider" />
+        <View style={{height: dividerHeight, borderBottomWidth: 1, borderBottomColor: '#eee'}} key="divider" />
       );
     }
 
@@ -156,7 +162,7 @@ const SortableListRow = React.createClass({
       <View
         onLayout={this.props.onRowLayout}
         key={this.props.rowId}
-        ref="view"
+        ref={view => { this._view = view; }}
         style={rowIsZeroOpacity ? {opacity: 0} : {}}>
         {innerViews}
       </View>

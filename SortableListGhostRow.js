@@ -5,10 +5,6 @@ import React, {
   View,
 } from 'react-native';
 
-// This is supposed to account for "top bar spacing" in original version
-// of this, not sure what that means
-const MAGIC_NUMBER = 20;
-
 const SortableListGhostRow = React.createClass({
 
   propTypes: {
@@ -40,9 +36,11 @@ const SortableListGhostRow = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.isSorting && !this.state.isSorting) {
-      Animated.spring(this.state.opacity, {toValue: 0}).start();
+      Animated.timing(this.state.opacity, {toValue: 0, duration: 250}).start();
     } else if (!prevState.isSorting && this.state.isSorting) {
-      Animated.spring(this.state.opacity, {toValue: 1}).start();
+      requestAnimationFrame(() => {
+        this.state.opacity.setValue(1);
+      });
     }
   },
 
@@ -53,23 +51,29 @@ const SortableListGhostRow = React.createClass({
 
   render() {
     let { rowData, rowId, layout, opacity, isSorting } = this.state;
-    let { panY } = this.props;
+    let { panY, snapY } = this.props;
 
     let height = 0;
     let marginTop = 0;
 
     if (layout) {
       height = layout.frameHeight;
-      marginTop = layout.pageY - MAGIC_NUMBER;
+      marginTop = layout.pageY;
     }
 
     let dynamicStyles = {
       height,
-      marginTop,
       opacity,
-      top: panY,
-      elevation: opacity.interpolate({inputRange: [0, 1], outputRange: [0, 3]}),
     };
+
+    if (isSorting) {
+      dynamicStyles.marginTop = marginTop;
+      dynamicStyles.top = panY;
+      dynamicStyles.elevation = opacity.interpolate({inputRange: [0, 1], outputRange: [0, 3]});
+    } else {
+      dynamicStyles.marginTop = 0;
+      dynamicStyles.top = snapY;
+    }
 
     return (
       <Animated.View
@@ -87,7 +91,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'transparent',
-    borderWidth: 0.5,
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
     borderColor: '#eee',
     shadowColor: '#eee',
     shadowOffset: {width: 0, height: 0},

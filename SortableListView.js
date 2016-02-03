@@ -17,12 +17,17 @@ import SortableListRow from './SortableListRow';
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
 const AUTOSCROLL_OFFSET_THRESHOLD = 100;
-const SCROLL_MAX_CHANGE = 15;
+const SCROLL_MAX_CHANGE = 20;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
+
+// Not really "magic" -- although 5 of this is unexplainable?
+// The rest seems to come from the margin of the container of the ListView
+const MAGIC_NUMBER = 20;
 
 const DEBUG_GESTURE = false;
 const DEBUG_SORT_EVENTS = false;
 const DEBUG_CHANGE_ROWS = false;
+const DEBUG_SNAP = false;
 
 const SortableListView = React.createClass({
 
@@ -75,6 +80,13 @@ const SortableListView = React.createClass({
    */
   _dragMoveY: null,
 
+
+  /*
+   * Store refs for all of the rows in case we to imperatively make any
+   * calls on them, eg: measure
+   */
+  _rowRefs: [],
+
   getInitialState() {
     let { items, order } = this.props;
     let dataSource = new ListView.DataSource({
@@ -85,6 +97,7 @@ const SortableListView = React.createClass({
       dataSource: dataSource.cloneWithRows(items, order),
       initialListSize: this.props.order.length,
       panY: new Animated.Value(0),
+      snapY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
     };
   },
@@ -105,25 +118,51 @@ const SortableListView = React.createClass({
       onMoveShouldSetPanResponder: onlyIfSorting.bind(this, 'onMoveShouldSetPanResponder'),
       onMoveShouldSetPanResponderCapture: onlyIfSorting.bind(this, 'onMoveShouldSetPanResponderCapture'),
 
-      onPanResponderGrant: () => {
+      onPanResponderGrant: (e, gestureState) => {
         DEBUG_GESTURE && console.log('grant');
         this._isResponder = true;
+
+        /* We need to calculate the distance from the touch to the pageY of the
+         * top of the row that the touch occured, so we know later how far the
+         * gesture's moveY is offset by. */
+        let { activeLayout } = this._getActiveItemState();
+        let { y0 } = gestureState;
+        this._initialTouchOffset = y0 - activeLayout.pageY;
+        this.state.snapY.setValue(activeLayout.pageY - MAGIC_NUMBER);
+
+        DEBUG_SNAP && console.log({
+          gestureState,
+          activeLayout,
+          _initialTouchOffset: this._initialTouchOffset,
+        });
+
       },
 
-      onPanResponderMove: (evt, gestureState) => {
+      onPanResponderMove: (e, gestureState) => {
         DEBUG_GESTURE && console.log('move');
-        this._dragMoveY = gestureState.moveY;
-        this.state.panY.setValue(gestureState.dy);
+        let {moveY, dy, y0} = gestureState;
+        this._dragMoveY = moveY;
+        this.state.panY.setValue(dy - MAGIC_NUMBER);
+        this.state.snapY.setValue(moveY - this._initialTouchOffset - MAGIC_NUMBER);
       },
 
-      onPanResponderTerminate: () => {
-        DEBUG_GESTURE && console.log('terminate');
+      onPanResponderReject: () => {
+        this._dragMoveY = null;
         this._isResponder = false;
         this._handleRowInactive();
       },
 
-      onPanResponderRelease: () => {
+      onPanResponderTerminate: () => {
+        DEBUG_GESTURE && console.log('terminate');
+        this._dragMoveY = null;
+        this._isResponder = false;
+        this._handleRowInactive();
+      },
+
+      onPanResponderRelease: (e, gestureState) => {
         DEBUG_GESTURE && console.log('release');
+        this._snapHoveredRow();
+        this._initialTouchOffset = null;
         this._dragMoveY = null;
         this._isResponder = false;
         this._maybeFireOnChangeOrder();
@@ -135,9 +174,7 @@ const SortableListView = React.createClass({
   componentWillReceiveProps(nextProps) {
     let { dataSource } = this.state;
 
-    // TODO: should use immutable for this, call toArray when passing into cloneWithRows
-    if (nextProps.items !== this.props.items ||
-        nextProps.order !== this.props.order) {
+    if (nextProps.items !== this.props.items || nextProps.order !== this.props.order) {
       this.setState({
         dataSource: dataSource.cloneWithRows(nextProps.items, nextProps.order),
       });
@@ -176,6 +213,7 @@ const SortableListView = React.createClass({
       <SortableListRow
         {...this.props}
         key={rowId}
+        ref={view => { this._rowRefs[rowId] = view; }}
         onLongPress={this._handleRowActive}
         onPressOut={this._handleRowInactive}
         onRowLayout={this._handleRowLayout.bind(this, rowId)}
@@ -190,12 +228,26 @@ const SortableListView = React.createClass({
   renderGhostRow() {
     return (
       <SortableListGhostRow
-        key={`ghost`}
+        key="ghost"
         panY={this.state.panY}
+        snapY={this.state.snapY}
         renderRow={this.props.renderRow}
         sharedListData={this.state.sharedListData}
       />
     );
+  },
+
+  _snapHoveredRow() {
+    let sharedState = this.state.sharedListData.getState();
+    let { hoveredRowId } = sharedState;
+
+    if (hoveredRowId) {
+      this._rowRefs[hoveredRowId].measure(layout => {
+        Animated.timing(this.state.snapY, {
+          toValue: layout.pageY - MAGIC_NUMBER, duration: 150
+        }).start();
+      });
+    }
   },
 
   _maybeFireOnChangeOrder() {
@@ -292,7 +344,6 @@ const SortableListView = React.createClass({
       rowIdx = rowIdx + 1;
     }
 
-    // Then return the rowId at that index
     return order[rowIdx - 1];
   },
 
@@ -326,6 +377,10 @@ const SortableListView = React.createClass({
 
       LayoutAnimation.easeInEaseOut();
       this.state.sharedListData.dispatch(actionData);
+
+
+      // Save hovered row as previous updated
+      // Make sure that we update all numbers between that one and current one
     }
 
     this.setTimeout(this._maybeUpdateHoveredRow, 16 * 3);
@@ -339,9 +394,11 @@ const SortableListView = React.createClass({
       return;
     }
 
-    // Reset our pan value!
+    // Reset our animated values
     this.state.panY.setOffset(0);
-    this.state.panY.setValue(0);
+    this.state.panY.setValue(-MAGIC_NUMBER);
+    this.state.snapY.setOffset(0);
+    this.state.snapY.setValue(0);
 
     // We need to initialize this or it will be null and we will have some
     // problems if the user doesn't scroll
