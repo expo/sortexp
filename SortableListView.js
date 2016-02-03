@@ -128,13 +128,18 @@ const SortableListView = React.createClass({
 
       onPanResponderGrant: (e, gestureState) => {
         DEBUG_GESTURE && console.log('grant');
+        let { activeLayout } = this._getActiveItemState();
+        let { y0 } = gestureState;
+
+        if (!activeLayout) {
+          return;
+        }
+
         this._isResponder = true;
 
         /* We need to calculate the distance from the touch to the pageY of the
          * top of the row that the touch occured, so we know later how far the
          * gesture's moveY is offset by. */
-        let { activeLayout } = this._getActiveItemState();
-        let { y0 } = gestureState;
         this._initialTouchOffset = y0 - activeLayout.pageY;
         this.state.snapY.setValue(activeLayout.pageY - this._layoutOffset);
 
@@ -323,14 +328,19 @@ const SortableListView = React.createClass({
     let currentScrollOffset = this._mostRecentScrollOffset;
     let newScrollOffset = null;
     let relativeDragMoveY = _dragMoveY - this._layoutOffset;
+    let { activeLayout } = this._getActiveItemState();
+    // Get the position at the bottom of the row that we're dragging -- dragMoveY
+    // refers to the y position at the topmost point of the rect
+    let bottomDragMoveY = _dragMoveY + activeLayout.frameHeight;
 
     if (relativeDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
       // Auto scroll up
       let percentageChange = 1 - (relativeDragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
       newScrollOffset = Math.max(0, currentScrollOffset - percentageChange * SCROLL_MAX_CHANGE);
-    } else if (this._dragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
+    } else if (bottomDragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
       // Auto scroll down
-      let percentageChange = 1 - ((DEVICE_HEIGHT - this._dragMoveY) / AUTOSCROLL_OFFSET_THRESHOLD);
+      let percentageChange = 1 - ((DEVICE_HEIGHT - bottomDragMoveY) / AUTOSCROLL_OFFSET_THRESHOLD);
+      console.log({bottomDragMoveY, percentageChange});
       newScrollOffset = currentScrollOffset + (percentageChange * SCROLL_MAX_CHANGE);
     }
 
