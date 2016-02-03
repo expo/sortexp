@@ -5,7 +5,7 @@ import React, {
 
 import { shallowEquals, shallowEqualsIgnoreKeys } from 'ShallowEquals';
 
-const DEBUG_HOVER = false;
+const DEBUG_HOVER = true;
 const DEBUG_LIFECYCLE = false;
 
 const SortableListRowContainer = React.createClass({
@@ -51,8 +51,8 @@ const SortableListRowContainer = React.createClass({
       } else {
         if (isActiveRow && isHoveredOver) {
           nextState.rowIsVisible = true;
-          nextState.rowIsZeroOpacity = false;
-        } else if (isActiveRow && !isHoveredOver && hoveredRowId !== null) {
+          nextState.rowIsZeroOpacity = true;
+        } else if (isActiveRow && !isHoveredOver) {
           nextState.rowIsVisible = false;
           nextState.rowIsZeroOpacity = false;
         } else {
@@ -68,11 +68,12 @@ const SortableListRowContainer = React.createClass({
         nextState.dividerIsVisible = true;
       }
 
-      if (DEBUG_HOVER && isActiveRow) {
+      if (DEBUG_HOVER && (isActiveRow || isHoveredOver)) {
         console.log({
           rowId,
           isActiveRow,
           isHoveredOver,
+          isSorting,
           ...nextState,
         });
       }
@@ -129,6 +130,14 @@ const SortableListRowContainer = React.createClass({
     this.props.onPressOut && this.props.onPressOut();
   },
 
+  _onLayout(layout) {
+    // Don't update layout if it's just as a result of row hiding or
+    // divider showing up
+    if (this.state.rowIsVisible && !this.state.dividerIsVisible) {
+      this.props.onRowLayout(layout);
+    }
+  },
+
   render() {
     let item = this.props.renderRow(
       this.props.rowData,
@@ -171,7 +180,7 @@ const SortableListRowContainer = React.createClass({
 
     return (
       <View
-        onLayout={this.props.onRowLayout}
+        onLayout={this._onLayout}
         key={this.props.rowId}
         ref={view => { this._view = view; }}
         style={rowIsZeroOpacity ? {opacity: 0} : {}}>

@@ -26,7 +26,8 @@ const DEBUG_GESTURE = false;
 const DEBUG_SORT_EVENTS = false;
 const DEBUG_CHANGE_ROWS = false;
 const DEBUG_SNAP = false;
-const DEBUG_SCROLL = true;
+const DEBUG_SCROLL = false;
+const DEBUG_HOVER = false;
 
 const SortableListView = React.createClass({
 
@@ -144,7 +145,7 @@ const SortableListView = React.createClass({
       onPanResponderMove: (e, gestureState) => {
         DEBUG_GESTURE && console.log('move');
         let { moveY, dy, y0 } = gestureState;
-        this._dragMoveY = moveY;
+        this._dragMoveY = moveY - this._initialTouchOffset;
         this.state.panY.setValue(dy - this._layoutOffset);
         this.state.snapY.setValue(moveY - this._initialTouchOffset - this._layoutOffset);
       },
@@ -293,7 +294,9 @@ const SortableListView = React.createClass({
   },
 
   _handleRowLayout(rowId, e) {
-    this._layoutMap[rowId] = e.nativeEvent.layout;
+    if (!this._isSorting()) {
+      this._layoutMap[rowId] = e.nativeEvent.layout;
+    }
   },
 
   _getActiveItemState() {
@@ -342,14 +345,14 @@ const SortableListView = React.createClass({
     let { _layoutMap } = this;
 
     let relativeY = y - this._layoutOffset;
-
+    let rowHeight = 0;
     let heightAcc = 0;
-    let rowIdx = 0;
+    let rowIdx = -1;
     let rowId;
     let rowLayout;
 
     // Added heights for each row until you reach the target y
-    while (heightAcc < relativeY) {
+    do {
       rowIdx = rowIdx + 1;
       rowLayout = _layoutMap[order[rowIdx]];
 
@@ -357,13 +360,15 @@ const SortableListView = React.createClass({
         break;
       }
 
-      heightAcc += rowLayout.height;
-    }
+      rowHeight = rowLayout.height;
+      heightAcc += rowHeight;
+    } while (heightAcc <= relativeY + rowHeight);
 
-    console.log({
+    DEBUG_HOVER && console.log({
       rowId: order[rowIdx],
-      y: y,
-      relativeY: relativeY,
+      heightAcc,
+      y,
+      relativeY,
     });
 
     return order[rowIdx];
