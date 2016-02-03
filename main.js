@@ -33,7 +33,7 @@ class ListItem extends React.Component {
 
     return (
       <TouchableComponent
-        activeOpacity={1}
+        activeOpacity={0.5}
         key={`item-${this.props.id}`}
         {...sortableProps}
         onPress={() => { this._handleFocus() }}>

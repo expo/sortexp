@@ -39,7 +39,7 @@ const SortableListGhostRow = React.createClass({
       Animated.timing(this.state.opacity, {toValue: 0, duration: 250}).start();
     } else if (!prevState.isSorting && this.state.isSorting) {
       requestAnimationFrame(() => {
-        this.state.opacity.setValue(1);
+        Animated.timing(this.state.opacity, {fromValue: 0.5, toValue: 1, duration: 200}).start();
       });
     }
   },
@@ -64,12 +64,13 @@ const SortableListGhostRow = React.createClass({
     let dynamicStyles = {
       height,
       opacity,
+      shadowRadius: opacity.interpolate({inputRange: [0, 1], outputRange: [0, 6]}),
     };
 
     if (isSorting) {
       dynamicStyles.marginTop = marginTop;
       dynamicStyles.top = panY;
-      dynamicStyles.elevation = opacity.interpolate({inputRange: [0, 1], outputRange: [0, 3]});
+      dynamicStyles.elevation = opacity.interpolate({inputRange: [0, 0.99, 1], outputRange: [0, 0, 4]});
     } else {
       dynamicStyles.marginTop = 0;
       dynamicStyles.top = snapY;
@@ -94,10 +95,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderBottomWidth: 0.5,
     borderColor: '#eee',
-    shadowColor: '#eee',
+    shadowColor: '#888',
     shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
+    shadowOpacity: 0.85,
   },
 });
 
