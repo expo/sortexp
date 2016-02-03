@@ -28,13 +28,6 @@ class ListItem extends React.Component {
     };
   }
 
-  componentWillMount() {
-    console.log({
-      mount: 'ListItem',
-      id: this.props.id,
-    });
-  }
-
   render() {
     let { item, sortableProps } = this.props;
 
@@ -75,7 +68,6 @@ class ListItem extends React.Component {
   _handleBlur() {
     this.setState({isFocused: false});
   }
-
 }
 
 class DraggableExample extends React.Component {

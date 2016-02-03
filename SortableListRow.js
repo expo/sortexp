@@ -5,7 +5,7 @@ import React, {
 
 import { shallowEquals, shallowEqualsIgnoreKeys } from 'ShallowEquals';
 
-const DEBUG_HOVER = false;
+const DEBUG_HOVER = true;
 const DEBUG_LIFECYCLE = false;
 
 const SortableListRow = React.createClass({
@@ -62,12 +62,14 @@ const SortableListRow = React.createClass({
         nextState.dividerIsVisible = true;
       }
 
-      DEBUG_HOVER && console.log({
-        rowId,
-        isActiveRow,
-        isHoveredOver,
-        ...nextState,
-      });
+      if (DEBUG_HOVER && isActiveRow) {
+        console.log({
+          rowId,
+          isActiveRow,
+          isHoveredOver,
+          ...nextState,
+        });
+      }
 
       if (!shallowEquals(this.state, nextState)) {
         nextState.dividerHeight = dividerHeight;

@@ -20,9 +20,9 @@ const AUTOSCROLL_OFFSET_THRESHOLD = 100;
 const SCROLL_MAX_CHANGE = 15;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
 
-const DEBUG_GESTURE = false;
-const DEBUG_SORT_EVENTS = false;
-const DEBUG_CHANGE_ROWS = false;
+const DEBUG_GESTURE = true;
+const DEBUG_SORT_EVENTS = true;
+const DEBUG_CHANGE_ROWS = true;
 
 const SortableListView = React.createClass({
 
@@ -333,7 +333,15 @@ const SortableListView = React.createClass({
    */
   _handleRowActive({rowId, layout}) {
     this.state.panY.setValue(0);
-    let dividerHeight = rowId ? this._layoutMap[rowId].height : 0;
+    if (!rowId) {
+      return;
+    }
+
+    let dividerHeight = this._layoutMap[rowId].height;
+
+    // We need to initialize this or it will be null and we will have some
+    // problems if the user doesn't scroll
+    this._dragMoveY = layout.pageY;
 
     this.state.sharedListData.dispatch({
       activeLayout: layout,
