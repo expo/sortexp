@@ -8,10 +8,10 @@ import React, {
   View,
 } from 'react-native';
 
-import StaticContainer from 'react-native/Libraries/Components/StaticContainer';
-
-import SortableListRow from './SortableListRow';
+import IncrementalListView from 'IncrementalListView';
 import SortableListGhostRow from './SortableListGhostRow';
+import SortableListRow from './SortableListRow';
+
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
 const SCROLL_LOWER_BOUND = 100;
@@ -78,6 +78,7 @@ const SortableListView = React.createClass({
 
     return {
       dataSource: dataSource.cloneWithRows(items, order),
+      initialListSize: this.props.order.length,
       panY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
     };
@@ -150,10 +151,11 @@ const SortableListView = React.createClass({
   render() {
     return (
       <View style={{flex: 1}}>
-        <ListView
+        <IncrementalListView
           {...this.props}
           {...this.panResponder.panHandlers}
           ref={view => { this._list = view; }}
+          initialListSize={this.state.initialListSize}
           dataSource={this.state.dataSource}
           onScroll={this._handleScroll}
           onLayout={this._handleListLayout}
@@ -260,7 +262,7 @@ const SortableListView = React.createClass({
       }
 
       this._checkTargetElement();
-      setTimeout(this._scrollAnimation, 16.6);
+      setTimeout(this._scrollAnimation, 16.6 * 3);
     }
   },
 

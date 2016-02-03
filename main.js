@@ -84,7 +84,7 @@ class DraggableExample extends React.Component {
     super(props);
 
     let order = [];
-    let items = range(5).reduce((result, i) => {
+    let items = range(80).reduce((result, i) => {
       let key = `id-${i}`
       order.push(key);
       result[key] = {text: i.toString()}

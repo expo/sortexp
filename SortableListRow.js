@@ -6,7 +6,7 @@ import React, {
 import { shallowEquals, shallowEqualsIgnoreKeys } from 'ShallowEquals';
 
 const DEBUG_HOVER = false;
-const DEBUG_LIFECYCLE = true;
+const DEBUG_LIFECYCLE = false;
 
 const SortableListRow = React.createClass({
 
