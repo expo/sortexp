@@ -3,11 +3,13 @@ import React, {
   Dimensions,
   LayoutAnimation,
   ListView,
+  NativeModules,
   PanResponder,
   PropTypes,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+const { UIManager } = NativeModules;
 import TimerMixin from 'react-timer-mixin';
 
 import IncrementalListView from 'IncrementalListView';
@@ -19,10 +21,6 @@ import makeSharedListDataStore from 'makeSharedListDataStore';
 const AUTOSCROLL_OFFSET_THRESHOLD = 100;
 const SCROLL_MAX_CHANGE = 20;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
-
-// Not really "magic" -- although 5 of this is unexplainable?
-// The rest seems to come from the margin of the container of the ListView
-const MAGIC_NUMBER = 20;
 
 const DEBUG_GESTURE = false;
 const DEBUG_SORT_EVENTS = false;
@@ -80,12 +78,16 @@ const SortableListView = React.createClass({
    */
   _dragMoveY: null,
 
-
   /*
    * Store refs for all of the rows in case we to imperatively make any
    * calls on them, eg: measure
    */
   _rowRefs: [],
+
+  /*
+   * The y-offset of the view from the top of the screen.
+   */
+  _layoutOffset: 0,
 
   getInitialState() {
     let { items, order } = this.props;
@@ -128,7 +130,7 @@ const SortableListView = React.createClass({
         let { activeLayout } = this._getActiveItemState();
         let { y0 } = gestureState;
         this._initialTouchOffset = y0 - activeLayout.pageY;
-        this.state.snapY.setValue(activeLayout.pageY - MAGIC_NUMBER);
+        this.state.snapY.setValue(activeLayout.pageY - this._layoutOffset);
 
         DEBUG_SNAP && console.log({
           gestureState,
@@ -140,10 +142,10 @@ const SortableListView = React.createClass({
 
       onPanResponderMove: (e, gestureState) => {
         DEBUG_GESTURE && console.log('move');
-        let {moveY, dy, y0} = gestureState;
+        let { moveY, dy, y0 } = gestureState;
         this._dragMoveY = moveY;
-        this.state.panY.setValue(dy - MAGIC_NUMBER);
-        this.state.snapY.setValue(moveY - this._initialTouchOffset - MAGIC_NUMBER);
+        this.state.panY.setValue(dy - this._layoutOffset);
+        this.state.snapY.setValue(moveY - this._initialTouchOffset - this._layoutOffset);
       },
 
       onPanResponderReject: () => {
@@ -243,7 +245,7 @@ const SortableListView = React.createClass({
     if (hoveredRowId) {
       this._rowRefs[hoveredRowId].measure(layout => {
         Animated.timing(this.state.snapY, {
-          toValue: layout.pageY - MAGIC_NUMBER, duration: 100
+          toValue: layout.pageY - this._layoutOffset, duration: 100
         }).start();
       });
     }
@@ -274,7 +276,26 @@ const SortableListView = React.createClass({
   },
 
   _handleListLayout(e) {
-    this._listLayout = e.nativeEvent.layout;
+    if (!this._listLayout) {
+      // Get the height of the list container
+      this._listLayout = e.nativeEvent.layout;
+
+      // Get the actual offset of the container
+      UIManager.measure(this._list.getInnerViewNode(), (frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
+        this._layoutOffset = pageY;
+        console.log({
+          measurements: {
+            frameX,
+            frameY,
+            frameWidth,
+            frameHeight,
+            pageX,
+            pageY,
+          },
+          layout: this._listLayout,
+        });
+      });
+    }
   },
 
   _handleRowLayout(rowId, e) {
@@ -301,10 +322,12 @@ const SortableListView = React.createClass({
 
     let currentScrollOffset = this._mostRecentScrollOffset;
     let newScrollOffset = null;
+    let relativeDragMoveY = _dragMoveY - this._layoutOffset;
 
-    if (_dragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
+
+    if (relativeDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
       // Auto scroll up
-      let percentageChange = 1 - (this._dragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
+      let percentageChange = 1 - (relativeDragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
       newScrollOffset = Math.max(0, currentScrollOffset - percentageChange * SCROLL_MAX_CHANGE);
     } else if (this._dragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
       // Auto scroll down
@@ -324,26 +347,32 @@ const SortableListView = React.createClass({
     let { order } = this.props;
     let { _layoutMap } = this;
 
+    let relativeY = y - this._layoutOffset;
+
     let heightAcc = 0;
     let rowIdx = 0;
+    let rowId;
     let rowLayout;
 
     // Added heights for each row until you reach the target y
-    while (heightAcc < y) {
-      let rowId = order[rowIdx];
-      rowLayout = _layoutMap[rowId];
+    while (heightAcc < relativeY) {
+      rowIdx = rowIdx + 1;
+      rowLayout = _layoutMap[order[rowIdx]];
 
-      // Are we somehow missing row layout? abort I guess?
       if (!rowLayout) {
-        return;
+        break;
       }
 
-      // Add height to accumulator
       heightAcc += rowLayout.height;
-      rowIdx = rowIdx + 1;
     }
 
-    return order[rowIdx - 1];
+    console.log({
+      rowId: order[rowIdx],
+      y: y,
+      relativeY: relativeY,
+    });
+
+    return order[rowIdx];
   },
 
   _findCurrentlyHoveredRow() {
@@ -395,7 +424,7 @@ const SortableListView = React.createClass({
 
     // Reset our animated values
     this.state.panY.setOffset(0);
-    this.state.panY.setValue(-MAGIC_NUMBER);
+    this.state.panY.setValue(-this._layoutOffset);
     this.state.snapY.setOffset(0);
     this.state.snapY.setValue(0);
 

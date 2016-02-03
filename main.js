@@ -76,7 +76,7 @@ class DraggableExample extends React.Component {
     super(props);
 
     let order = [];
-    let items = range(80).reduce((result, i) => {
+    let items = range(20).reduce((result, i) => {
       let key = `id-${i}`
       order.push(key);
       result[key] = {text: i.toString()}
@@ -91,7 +91,7 @@ class DraggableExample extends React.Component {
 
   render() {
     return (
-      <View style={{marginTop: 25, flex: 1,}}>
+      <View style={{marginTop: 200, flex: 1,}}>
         <SortableListView
           items={this.state.items}
           onChangeOrder={this._handleOrderChange.bind(this)}

@@ -51,8 +51,8 @@ const SortableListRowContainer = React.createClass({
       } else {
         if (isActiveRow && isHoveredOver) {
           nextState.rowIsVisible = true;
-          nextState.rowIsZeroOpacity = true;
-        } else if (isActiveRow && !isHoveredOver) {
+          nextState.rowIsZeroOpacity = false;
+        } else if (isActiveRow && !isHoveredOver && hoveredRowId !== null) {
           nextState.rowIsVisible = false;
           nextState.rowIsZeroOpacity = false;
         } else {
@@ -101,14 +101,13 @@ const SortableListRowContainer = React.createClass({
 
   measure(callback) {
     this._view.measure((frameX, frameY, frameWidth, frameHeight, pageX, pageY) => {
-      let OTHER_MAGIC_NUMBER = -6;
       let layout = {
         frameX,
         frameY,
         frameWidth,
         frameHeight,
         pageX,
-        pageY: pageY + OTHER_MAGIC_NUMBER
+        pageY,
       };
 
       callback(layout);
