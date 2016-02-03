@@ -1,5 +1,6 @@
 import React, {
   Animated,
+  Dimensions,
   LayoutAnimation,
   ListView,
   PanResponder,
@@ -7,6 +8,7 @@ import React, {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import TimerMixin from 'react-timer-mixin';
 
 import IncrementalListView from 'IncrementalListView';
 import SortableListGhostRow from './SortableListGhostRow';
@@ -14,14 +16,17 @@ import SortableListRow from './SortableListRow';
 
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
-const SCROLL_LOWER_BOUND = 100;
+const AUTOSCROLL_OFFSET_THRESHOLD = 100;
 const SCROLL_MAX_CHANGE = 15;
+const DEVICE_HEIGHT = Dimensions.get('window').height;
 
 const DEBUG_GESTURE = false;
 const DEBUG_SORT_EVENTS = false;
 const DEBUG_CHANGE_ROWS = false;
 
 const SortableListView = React.createClass({
+
+  mixins: [TimerMixin],
 
   propTypes: {
     /*
@@ -212,7 +217,6 @@ const SortableListView = React.createClass({
 
   _handleScroll(e) {
     this._mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
-    this.scrollContainerHeight = e.nativeEvent.contentSize.height;
   },
 
   _handleListLayout(e) {
@@ -231,39 +235,35 @@ const SortableListView = React.createClass({
     return this._getActiveItemState().isSorting;
   },
 
-  // ?????????????????
-  _scrollAnimation() {
-    if (this.isMounted() && this._isSorting()) {
-      if (this._dragMoveY === null) {
-        return requestAnimationFrame(this._scrollAnimation);
-      }
-
-      let SCROLL_HIGHER_BOUND = this._listLayout.height - SCROLL_LOWER_BOUND;
-      let MAX_SCROLL_VALUE = this.scrollContainerHeight;
-      let currentScrollValue = this._mostRecentScrollOffset;
-      let newScrollValue = null;
-
-      if (this._dragMoveY < SCROLL_LOWER_BOUND && currentScrollValue > 0) {
-        let PERCENTAGE_CHANGE = 1 - (this._dragMoveY / SCROLL_LOWER_BOUND);
-          newScrollValue = currentScrollValue - (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
-          if (newScrollValue < 0) newScrollValue = 0;
-      }
-
-      if (this._dragMoveY > SCROLL_HIGHER_BOUND && currentScrollValue < MAX_SCROLL_VALUE) {
-
-        let PERCENTAGE_CHANGE = 1 - ((this._listLayout.height - this._dragMoveY) / SCROLL_LOWER_BOUND);
-        newScrollValue = currentScrollValue + (PERCENTAGE_CHANGE * SCROLL_MAX_CHANGE);
-        if (newScrollValue > MAX_SCROLL_VALUE) newScrollValue = MAX_SCROLL_VALUE;
-      }
-
-      if (newScrollValue !== null) {
-        this._mostRecentScrollOffset = newScrollValue;
-        this.scrollWithoutAnimationTo(this._mostRecentScrollOffset, 0);
-      }
-
-      this._checkTargetElement();
-      setTimeout(this._scrollAnimation, 16.6 * 3);
+  _maybeAutoScroll() {
+    if (!this._isSorting()) {
+      return;
     }
+
+    let { _dragMoveY } = this;
+    if (_dragMoveY === null) {
+      return this.requestAnimationFrame(this._maybeAutoScroll);
+    }
+
+    let currentScrollOffset = this._mostRecentScrollOffset;
+    let newScrollOffset = null;
+
+    if (_dragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
+      // Auto scroll up
+      let percentageChange = 1 - (this._dragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
+      newScrollOffset = Math.max(0, currentScrollOffset - percentageChange * SCROLL_MAX_CHANGE);
+    } else if (this._dragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
+      // Auto scroll down
+      let percentageChange = 1 - ((DEVICE_HEIGHT - this._dragMoveY) / AUTOSCROLL_OFFSET_THRESHOLD);
+      newScrollOffset = currentScrollOffset + (percentageChange * SCROLL_MAX_CHANGE);
+    }
+
+    if (newScrollOffset !== null) {
+      this._mostRecentScrollOffset = newScrollOffset;
+      this.scrollWithoutAnimationTo(this._mostRecentScrollOffset);
+    }
+
+    this.requestAnimationFrame(this._maybeAutoScroll);
   },
 
   _findRowIdAtOffset(y) {
@@ -305,7 +305,11 @@ const SortableListView = React.createClass({
    * If the row we are hovering over has changed, then update our state to
    * reflect that.
    */
-  _checkTargetElement() {
+  _maybeUpdateHoveredRow() {
+    if (!this._isSorting()) {
+      return;
+    }
+
     let { activeRowId } = this.state;
     let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
     let newHoveredRowId = this._findCurrentlyHoveredRow();
@@ -320,6 +324,8 @@ const SortableListView = React.createClass({
       LayoutAnimation.easeInEaseOut();
       this.state.sharedListData.dispatch(actionData);
     }
+
+    this.setTimeout(this._maybeUpdateHoveredRow, 16 * 3);
   },
 
   /*
@@ -342,7 +348,9 @@ const SortableListView = React.createClass({
     this._list.setNativeProps({
       scrollEnabled: false,
     });
-    requestAnimationFrame(() => this._scrollAnimation());
+
+    this.requestAnimationFrame(() => this._maybeAutoScroll());
+    this.requestAnimationFrame(() => this._maybeUpdateHoveredRow());
   },
 
   /*
