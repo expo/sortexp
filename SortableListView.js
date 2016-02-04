@@ -64,6 +64,9 @@ const SortableListView = React.createClass({
      * that kind of thing).
      */
     renderRow: PropTypes.func.isRequired,
+
+    renderDivider: PropTypes.func,
+    renderHeader: PropTypes.func,
   },
 
   /*
@@ -416,12 +419,16 @@ const SortableListView = React.createClass({
     let rowHeight = 0;
     let heightAcc = 0;
     let rowIdx = -1;
-    let rowId;
     let rowLayout;
 
     do {
       rowIdx = rowIdx + 1;
       rowLayout = _layoutMap[order[rowIdx]];
+
+      // Hit the end of the list
+      if (!rowLayout) {
+        return order[rowIdx -1];
+      }
 
       // Is the user trying to drag something above the first row? Special case to
       // add a divider to the header
