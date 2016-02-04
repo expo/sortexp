@@ -12,6 +12,8 @@ import React, {
 const { UIManager } = NativeModules;
 import TimerMixin from 'react-timer-mixin';
 
+import clamp from './clamp';
+
 import IncrementalListView from 'IncrementalListView';
 import SortableListGhostRowContainer from './SortableListGhostRowContainer';
 import SortableListRowContainer from './SortableListRowContainer';
@@ -90,6 +92,11 @@ const SortableListView = React.createClass({
    * The y-offset of the view from the top of the screen.
    */
   _layoutOffset: 0,
+
+  /*
+   * The height of the inner content view of the containing ScrollView
+   */
+  _contentHeight: 0,
 
   getInitialState() {
     let { items, order } = this.props;
@@ -193,12 +200,9 @@ const SortableListView = React.createClass({
     }
   },
 
-  scrollTo(y) {
-    this._list.getScrollResponder().scrollTo(y);
-  },
-
   scrollWithoutAnimationTo(y) {
-    this._list.getScrollResponder().scrollWithoutAnimationTo(y);
+    let constrainedY = clamp(y, 0, this._contentHeight);
+    this._list.getScrollResponder().scrollWithoutAnimationTo(constrainedY);
   },
 
   render() {
@@ -290,13 +294,17 @@ const SortableListView = React.createClass({
   },
 
   _handleListLayout(e) {
-    if (!this._listLayout) {
-      // Get the height of the list container
-      this._listLayout = e.nativeEvent.layout;
+    if (!this._isSorting()) {
+      let scrollViewHandle = React.findNodeHandle(this._list.getScrollResponder());
+      let innerViewHandle = this._list.getInnerViewNode();
+      let scrollFrameHeight = e.nativeEvent.layout.height;
 
-      // Get the actual offset of the container
-      UIManager.measure(this._list.getInnerViewNode(), (__, ___, ____, _____, ______, pageY) => {
+      UIManager.measure(scrollViewHandle, (__, ___, ____, _____, ______, pageY) => {
         this._layoutOffset = pageY;
+      });
+
+      UIManager.measure(innerViewHandle, (__, ___, ____, frameHeight) => {
+        this._contentHeight = Math.max(0, frameHeight - scrollFrameHeight);
       });
     }
   },
@@ -329,6 +337,7 @@ const SortableListView = React.createClass({
     let newScrollOffset = null;
     let relativeDragMoveY = _dragMoveY - this._layoutOffset;
     let { activeLayout } = this._getActiveItemState();
+
     // Get the position at the bottom of the row that we're dragging -- dragMoveY
     // refers to the y position at the topmost point of the rect
     let bottomDragMoveY = _dragMoveY + activeLayout.frameHeight;
@@ -340,7 +349,6 @@ const SortableListView = React.createClass({
     } else if (bottomDragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
       // Auto scroll down
       let percentageChange = 1 - ((DEVICE_HEIGHT - bottomDragMoveY) / AUTOSCROLL_OFFSET_THRESHOLD);
-      console.log({bottomDragMoveY, percentageChange});
       newScrollOffset = currentScrollOffset + (percentageChange * SCROLL_MAX_CHANGE);
     }
 
