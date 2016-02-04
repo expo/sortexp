@@ -270,7 +270,7 @@ var IncrementalListView = React.createClass({
       props.scrollEventThrottle = DEFAULT_SCROLL_CALLBACK_THROTTLE;
     }
     if (props.removeClippedSubviews === undefined) {
-      props.removeClippedSubviews = true;
+      props.removeClippedSubviews = false;
     }
     Object.assign(props, {
       onScroll: this._onScroll,

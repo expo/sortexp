@@ -15,9 +15,12 @@ import TimerMixin from 'react-timer-mixin';
 import clamp from './clamp';
 
 import IncrementalListView from 'IncrementalListView';
+import SortableListHeader from './SortableListHeader';
 import SortableListGhostRowContainer from './SortableListGhostRowContainer';
 import SortableListRowContainer from './SortableListRowContainer';
-import { TOP_OF_LIST_PLACEHOLDER_ROW_ID } from './SortableListViewConstants';
+import Constants from './SortableListViewConstants';
+
+const { HEADER_ROW_ID } = Constants;
 
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
@@ -193,7 +196,8 @@ const SortableListView = React.createClass({
 
   scrollWithoutAnimationTo(y) {
     let constrainedY = clamp(y, 0, this._contentHeight);
-    this._list.getScrollResponder().scrollWithoutAnimationTo(constrainedY);
+    this._list.getScrollResponder().scrollTo(constrainedY, 0, {animated: false});
+    // this._list.getScrollResponder().scrollWithoutAnimationTo(constrainedY);
 
     // On Android this will be updated automatically by the onScroll handler,
     // but onScroll isn't fired in response to scrollWithoutAnimationTo on
@@ -223,14 +227,25 @@ const SortableListView = React.createClass({
 
   renderHeader() {
     return (
-      <View
-        style={{backgroundColor: '#eee', height: 200, alignItems: 'center', justifyContent: 'center', paddingTop: 25, flex: 1}}
-        onLayout={this._handleHeaderLayout}>
-        <React.Text
-          style={{fontSize: 30, color: '#888'}}
-          >Placeholder Header!</React.Text>
-      </View>
+      <SortableListHeader
+        onLayout={this._handleHeaderLayout}
+        renderHeader={this.props.renderHeader}
+        renderDivider={this.renderDivider}
+        sharedListData={this.state.sharedListData}
+      />
     );
+  },
+
+  renderDivider() {
+    let { dividerHeight } = this._getActiveItemState();
+
+    if (this.props.renderDivider) {
+      return this.props.renderDivider(dividerHeight);
+    } else {
+      return (
+        <View style={{height: dividerHeight}} key="divider" />
+      );
+    }
   },
 
   renderRow(data, rowId, props = {}) {
@@ -242,6 +257,7 @@ const SortableListView = React.createClass({
         onLongPress={this._handleRowActive}
         onPressOut={this._handleRowInactive}
         onRowLayout={this._handleRowLayout.bind(this, rowId)}
+        renderDivider={this.renderDivider}
         rowData={data}
         rowId={rowId}
         sharedListData={this.state.sharedListData}
@@ -265,11 +281,18 @@ const SortableListView = React.createClass({
     let sharedState = this.state.sharedListData.getState();
     let activeItemState = this._getActiveItemState();
     let { hoveredRowId } = sharedState;
+    let snapToRowId = hoveredRowId;
 
-    if (hoveredRowId) {
-      this._rowRefs[hoveredRowId].measure(layout => {
+    if (hoveredRowId === HEADER_ROW_ID) {
+      snapToRowId = this.props.order[0];
+    }
+
+    if (snapToRowId) {
+      this._rowRefs[snapToRowId].measure(layout => {
         let targetY = layout.pageY - this._layoutOffset;
-        if (hoveredRowId !== activeItemState.activeRowId) {
+
+        if (snapToRowId !== activeItemState.activeRowId &&
+            hoveredRowId !== HEADER_ROW_ID) {
           targetY = targetY + activeItemState.dividerHeight
         }
 
@@ -291,8 +314,15 @@ const SortableListView = React.createClass({
     }
 
     if (hoveredRowId !== activeRowId) {
-      this.props.onChangeOrder &&
-        this.props.onChangeOrder(activeRowId, this.props.order.indexOf(hoveredRowId) + 1);
+      let newRowIndex;
+
+      if (hoveredRowId === HEADER_ROW_ID) {
+        newRowIndex = 0;
+      } else {
+        newRowIndex = this.props.order.indexOf(hoveredRowId) + 1;
+      }
+
+      this.props.onChangeOrder && this.props.onChangeOrder(activeRowId, newRowIndex);
     }
   },
 
@@ -383,12 +413,10 @@ const SortableListView = React.createClass({
       rowIdx = rowIdx + 1;
       rowLayout = _layoutMap[order[rowIdx]];
 
-      if (!rowLayout) {
-        return order[rowIdx - 1];
-      }
-
-      if (heightAcc === 0 && relativeY < rowLayout.height / 2) {
-        return TOP_OF_LIST_PLACEHOLDER_ROW_ID;
+      // Is the user trying to drag something above the first row? Special case to
+      // add a divider to the header
+      if (heightAcc === 0 && relativeY < Math.max(10, rowLayout.height / 10)) {
+        return HEADER_ROW_ID;
       }
 
       rowHeight = rowLayout.height;

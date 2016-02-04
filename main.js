@@ -6,10 +6,11 @@ import React, {
   ListView,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
-  View,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
 const TouchableComponent = TouchableOpacity;
@@ -94,10 +95,22 @@ class DraggableExample extends React.Component {
       <View style={{flex: 1, backgroundColor: '#eee',}}>
         <SortableListView
           items={this.state.items}
+          renderHeader={this._renderHeader}
           onChangeOrder={this._handleOrderChange.bind(this)}
           order={this.state.order}
           renderRow={this._renderRow}
         />
+      </View>
+    );
+  }
+
+  _renderHeader() {
+    return (
+      <View
+        style={{backgroundColor: '#eee', height: 200, alignItems: 'center', justifyContent: 'center', paddingTop: 25, flex: 1}}>
+        <Text style={{fontSize: 30, color: '#888'}}>
+          Placeholder Header!
+        </Text>
       </View>
     );
   }

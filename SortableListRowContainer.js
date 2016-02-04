@@ -3,7 +3,7 @@ import React, {
   View,
 } from 'react-native';
 
-import { shallowEquals, shallowEqualsIgnoreKeys } from 'ShallowEquals';
+import { shallowEquals } from 'ShallowEquals';
 
 const SortableListRowContainer = React.createClass({
 
@@ -11,6 +11,7 @@ const SortableListRowContainer = React.createClass({
     onLongPress: PropTypes.func.isRequired,
     onPressOut: PropTypes.func.isRequired,
     onRowLayout: PropTypes.func.isRequired,
+    renderDivider: PropTypes.func.isRequired,
     renderRow: PropTypes.func.isRequired,
     rowData: PropTypes.any.isRequired,
     rowId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
@@ -19,7 +20,6 @@ const SortableListRowContainer = React.createClass({
 
   getInitialState() {
     return {
-      dividerHeight: 0,
       dividerIsVisible: false,
       rowIsVisible: true,
     };
@@ -29,7 +29,7 @@ const SortableListRowContainer = React.createClass({
     let updateHoverState = () => {
       let data = this.props.sharedListData.getState();
       let { rowId } = this.props;
-      let { isSorting, activeRowId, dividerHeight } = data.activeItemState;
+      let { isSorting, activeRowId } = data.activeItemState;
       let { hoveredRowId } = data;
       let isActiveRow = activeRowId === rowId;
       let isHoveredOver = hoveredRowId === rowId;
@@ -50,7 +50,6 @@ const SortableListRowContainer = React.createClass({
       }
 
       if (!shallowEquals(this.state, nextState)) {
-        nextState.dividerHeight = dividerHeight;
         this.setState(nextState);
       }
     }
@@ -65,7 +64,7 @@ const SortableListRowContainer = React.createClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    let stateHasChanged = !shallowEqualsIgnoreKeys(this.state, nextState, ['dividerHeight']);
+    let stateHasChanged = !shallowEquals(this.state, nextState);
     let propsHaveChanged = nextProps.rowData !== this.props.rowData;
 
     return stateHasChanged || propsHaveChanged;
@@ -102,8 +101,7 @@ const SortableListRowContainer = React.createClass({
   },
 
   _onLayout(layout) {
-    // Don't update layout if it's just as a result of row hiding or
-    // divider showing up
+    // Don't update layout if it's just as a result of row hiding or divider showing up
     if (!this.state.dividerIsVisible) {
       this.props.onRowLayout(layout);
     }
@@ -120,7 +118,6 @@ const SortableListRowContainer = React.createClass({
     );
 
     let {
-      dividerHeight,
       dividerIsVisible,
       rowIsVisible,
     } = this.state;
@@ -131,14 +128,8 @@ const SortableListRowContainer = React.createClass({
       innerViews.push(item);
     }
 
-    // TODO: this style is hardcoded, should have a renderDivider func
-    // to make this customizable
     if (dividerIsVisible) {
-      innerViews.push(
-        <View style={{
-          height: dividerHeight,
-        }} key="divider" />
-      );
+      innerViews.push(this.props.renderDivider());
     }
 
     return (
