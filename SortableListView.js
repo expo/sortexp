@@ -1,7 +1,6 @@
 import React, {
   Animated,
   Dimensions,
-  LayoutAnimation,
   ListView,
   NativeModules,
   PanResponder,
@@ -365,17 +364,25 @@ const SortableListView = React.createClass({
 
     do {
       rowIdx = rowIdx + 1;
-      rowLayout = _layoutMap[order[rowIdx]];
+      rowId = order[rowIdx];
+      rowLayout = _layoutMap[rowId];
 
-      if (!rowLayout) {
-        return order[rowIdx - 1];
+      if (rowLayout) {
+        rowHeight = rowLayout.height;
+        heightAcc = heightAcc + rowHeight;
+      } else {
+        rowId = order[rowIdx - 1];
+        break;
       }
-
-      rowHeight = rowLayout.height;
-      heightAcc += rowHeight;
     } while (heightAcc <= relativeY + rowHeight);
 
-    return order[rowIdx];
+    console.log({
+      rowId,
+      relativeY,
+      rowId
+    });
+
+    return rowId;
   },
 
   _findCurrentlyHoveredRow() {
@@ -406,7 +413,10 @@ const SortableListView = React.createClass({
         hoveredRowId: newHoveredRowId,
       };
 
-      LayoutAnimation.easeInEaseOut();
+      // LayoutAnimation does not work properly on Android, so don't use this
+      // for now
+      // LayoutAnimation.easeInEaseOut();
+
       this.state.sharedListData.dispatch(actionData);
 
       // TODO: update temporary ordering
@@ -415,7 +425,7 @@ const SortableListView = React.createClass({
     }
 
     // TODO: do this less frequently on worse devices?
-    this.requestAnimationFrame(this._maybeUpdateHoveredRow);
+    this.setTimeout(this._maybeUpdateHoveredRow, 16 * 3);
   },
 
   /*
