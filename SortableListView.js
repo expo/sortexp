@@ -27,9 +27,6 @@ const DEVICE_HEIGHT = Dimensions.get('window').height;
 const DEBUG_GESTURE = false;
 const DEBUG_SORT_EVENTS = false;
 const DEBUG_CHANGE_ROWS = false;
-const DEBUG_SNAP = false;
-const DEBUG_SCROLL = false;
-const DEBUG_HOVER = false;
 
 const SortableListView = React.createClass({
 
@@ -139,6 +136,7 @@ const SortableListView = React.createClass({
         let { y0 } = gestureState;
 
         if (!activeLayout) {
+          console.log('No activeLayout present in onPanResponderGrant -- ignore this on iOS');
           return;
         }
 
@@ -149,12 +147,6 @@ const SortableListView = React.createClass({
          * gesture's moveY is offset by. */
         this._initialTouchOffset = y0 - activeLayout.pageY;
         this.state.snapY.setValue(activeLayout.pageY - this._layoutOffset);
-
-        DEBUG_SNAP && console.log({
-          gestureState,
-          activeLayout,
-          _initialTouchOffset: this._initialTouchOffset,
-        });
       },
 
       onPanResponderMove: (e, gestureState) => {
@@ -203,6 +195,11 @@ const SortableListView = React.createClass({
   scrollWithoutAnimationTo(y) {
     let constrainedY = clamp(y, 0, this._contentHeight);
     this._list.getScrollResponder().scrollWithoutAnimationTo(constrainedY);
+
+    // On Android this will be updated automatically by the onScroll handler,
+    // but onScroll isn't fired in response to scrollWithoutAnimationTo on
+    // iOS it seems..
+    this._mostRecentScrollOffset = constrainedY;
   },
 
   render() {
@@ -286,10 +283,6 @@ const SortableListView = React.createClass({
   },
 
   _handleScroll(e) {
-    DEBUG_SCROLL && console.log({
-      contentOffset: e.nativeEvent.contentOffset,
-    });
-
     this._mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
   },
 
@@ -353,8 +346,7 @@ const SortableListView = React.createClass({
     }
 
     if (newScrollOffset !== null) {
-      this._mostRecentScrollOffset = newScrollOffset;
-      this.scrollWithoutAnimationTo(this._mostRecentScrollOffset);
+      this.scrollWithoutAnimationTo(newScrollOffset);
     }
 
     this.requestAnimationFrame(this._maybeAutoScroll);
@@ -376,19 +368,12 @@ const SortableListView = React.createClass({
       rowLayout = _layoutMap[order[rowIdx]];
 
       if (!rowLayout) {
-        break;
+        return order[rowIdx - 1];
       }
 
       rowHeight = rowLayout.height;
       heightAcc += rowHeight;
     } while (heightAcc <= relativeY + rowHeight);
-
-    DEBUG_HOVER && console.log({
-      rowId: order[rowIdx],
-      heightAcc,
-      y,
-      relativeY,
-    });
 
     return order[rowIdx];
   },
@@ -410,7 +395,7 @@ const SortableListView = React.createClass({
       return;
     }
 
-    let { activeRowId } = this.state;
+    let { activeRowId } = this._getActiveItemState();
     let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
     let newHoveredRowId = this._findCurrentlyHoveredRow();
 
