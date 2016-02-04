@@ -104,7 +104,7 @@ const SortableListRowContainer = React.createClass({
   _onLayout(layout) {
     // Don't update layout if it's just as a result of row hiding or
     // divider showing up
-    if (this.state.rowIsVisible && !this.state.dividerIsVisible) {
+    if (!this.state.dividerIsVisible) {
       this.props.onRowLayout(layout);
     }
   },

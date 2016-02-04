@@ -17,6 +17,7 @@ import clamp from './clamp';
 import IncrementalListView from 'IncrementalListView';
 import SortableListGhostRowContainer from './SortableListGhostRowContainer';
 import SortableListRowContainer from './SortableListRowContainer';
+import { TOP_OF_LIST_PLACEHOLDER_ROW_ID } from './SortableListViewConstants';
 
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
@@ -24,7 +25,7 @@ const AUTOSCROLL_OFFSET_THRESHOLD = 100;
 const SCROLL_MAX_CHANGE = 20;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
 
-const ENABLE_LAYOUT_ANIMATION = true;
+const ENABLE_LAYOUT_ANIMATION = false;
 
 const SortableListView = React.createClass({
 
@@ -89,6 +90,11 @@ const SortableListView = React.createClass({
   _layoutOffset: 0,
 
   /*
+   * Height of the ListView header
+   */
+  _headerHeight: 0,
+
+  /*
    * The height of the inner content view of the containing ScrollView
    */
   _contentHeight: 0,
@@ -106,6 +112,10 @@ const SortableListView = React.createClass({
       snapY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
     };
+  },
+
+  _topOfListOffset() {
+    return this._headerHeight + this._layoutOffset;
   },
 
   componentWillMount() {
@@ -202,10 +212,23 @@ const SortableListView = React.createClass({
           dataSource={this.state.dataSource}
           onScroll={this._handleScroll}
           onLayout={this._handleListLayout}
+          renderHeader={this.renderHeader}
           renderRow={(data, __unused, rowId) => this.renderRow(data, rowId)}
         />
 
         {this.renderGhostRow()}
+      </View>
+    );
+  },
+
+  renderHeader() {
+    return (
+      <View
+        style={{backgroundColor: '#eee', height: 200, alignItems: 'center', justifyContent: 'center', paddingTop: 25, flex: 1}}
+        onLayout={this._handleHeaderLayout}>
+        <React.Text
+          style={{fontSize: 30, color: '#888'}}
+          >Placeholder Header!</React.Text>
       </View>
     );
   },
@@ -277,6 +300,10 @@ const SortableListView = React.createClass({
     this._mostRecentScrollOffset = e.nativeEvent.contentOffset.y;
   },
 
+  _handleHeaderLayout(e) {
+    this._headerHeight = e.nativeEvent.layout.height;
+  },
+
   _handleListLayout(e) {
     if (!this._isSorting()) {
       let scrollViewHandle = React.findNodeHandle(this._list.getScrollResponder());
@@ -294,9 +321,7 @@ const SortableListView = React.createClass({
   },
 
   _handleRowLayout(rowId, e) {
-    if (!this._isSorting()) {
-      this._layoutMap[rowId] = e.nativeEvent.layout;
-    }
+    this._layoutMap[rowId] = e.nativeEvent.layout;
   },
 
   _getActiveItemState() {
@@ -347,7 +372,7 @@ const SortableListView = React.createClass({
     let { order } = this.props;
     let { _layoutMap } = this;
 
-    let relativeY = y - this._layoutOffset;
+    let relativeY = y - this._topOfListOffset();
     let rowHeight = 0;
     let heightAcc = 0;
     let rowIdx = -1;
@@ -362,9 +387,13 @@ const SortableListView = React.createClass({
         return order[rowIdx - 1];
       }
 
+      if (heightAcc === 0 && relativeY < rowLayout.height / 2) {
+        return TOP_OF_LIST_PLACEHOLDER_ROW_ID;
+      }
+
       rowHeight = rowLayout.height;
       heightAcc += rowHeight;
-    } while (heightAcc <= relativeY);
+    } while (heightAcc <= relativeY - rowLayout.height / 2);
 
     return order[rowIdx];
   },
