@@ -371,7 +371,6 @@ const SortableListView = React.createClass({
     let rowId;
     let rowLayout;
 
-    // Added heights for each row until you reach the target y
     do {
       rowIdx = rowIdx + 1;
       rowLayout = _layoutMap[order[rowIdx]];
