@@ -127,7 +127,7 @@ class DraggableExample extends React.Component {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    height: 50,
+    height: 90,
     flex: 1,
     borderColor: '#eee',
     borderBottomWidth: 1,
