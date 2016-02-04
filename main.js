@@ -36,6 +36,7 @@ class ListItem extends React.Component {
       <TouchableComponent
         activeOpacity={0.3}
         key={`item-${this.props.id}`}
+        delayLongPress={200}
         {...sortableProps}
         onPress={() => { this._handleFocus() }}>
         <View

@@ -126,6 +126,14 @@ const SortableListView = React.createClass({
       return this._isSorting();
     };
 
+    let endDrag = () => {
+      this._endDragTimeout = this.setImmediate(() => {
+        this._dragMoveY = null;
+        this._isResponder = false;
+        this._handleRowInactive();
+      });
+    };
+
     this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder:
         onlyIfSorting.bind(this, 'onStartShouldSetPanResponder'),
@@ -161,19 +169,20 @@ const SortableListView = React.createClass({
         this.state.snapY.setValue(moveY - this._initialTouchOffset - this._layoutOffset);
       },
 
-      onPanResponderReject: () => {
-        this._dragMoveY = null;
-        this._isResponder = false;
-        this._handleRowInactive();
-      },
+      onPanResponderReject: endDrag,
+      onPanResponderTerminate: endDrag,
+      onPanResponderEnd: endDrag,
 
-      onPanResponderTerminate: () => {
-        this._dragMoveY = null;
-        this._isResponder = false;
-        this._handleRowInactive();
+      onResponderTerminationRequest: () => {
+        return !this._isSorting();
       },
 
       onPanResponderRelease: (e, gestureState) => {
+        if (this._endDragTimeout) {
+          this.clearImmediate(this._endDragTimeout);
+          this._endDragTimeout = null;
+        }
+
         this._snapHoveredRow();
         this._initialTouchOffset = null;
         this._dragMoveY = null;
@@ -196,7 +205,7 @@ const SortableListView = React.createClass({
 
   scrollWithoutAnimationTo(y) {
     let constrainedY = clamp(y, 0, this._contentHeight);
-    this._list.getScrollResponder().scrollTo(constrainedY, 0, {animated: false});
+    this._list.getScrollResponder().scrollTo({y: constrainedY, x: 0, animated: false});
     // this._list.getScrollResponder().scrollWithoutAnimationTo(constrainedY);
 
     // On Android this will be updated automatically by the onScroll handler,
@@ -291,9 +300,10 @@ const SortableListView = React.createClass({
       this._rowRefs[snapToRowId].measure(layout => {
         let targetY = layout.pageY - this._layoutOffset;
 
-        if (snapToRowId !== activeItemState.activeRowId &&
-            hoveredRowId !== HEADER_ROW_ID) {
-          targetY = targetY + activeItemState.dividerHeight
+        if (hoveredRowId === HEADER_ROW_ID) {
+          targetY = targetY - activeItemState.dividerHeight;
+        } else if (snapToRowId !== activeItemState.activeRowId) {
+          targetY = targetY + activeItemState.dividerHeight;
         }
 
         Animated.timing(this.state.snapY, {
