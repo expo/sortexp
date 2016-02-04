@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "lodash": "^4.2.1",
-    "react-native": "^0.19.0",
+    "react-native": "facebook/react-native#82b0df9d2a6163879647691235f01b3067c471b8",
     "react-timer-mixin": "^0.13.3",
     "redux": "^3.2.1"
   }

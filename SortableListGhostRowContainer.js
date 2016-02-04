@@ -39,7 +39,7 @@ const SortableListGhostRowContainer = React.createClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.isSorting && !this.state.isSorting) {
-      Animated.timing(this.state.opacity, {toValue: 0, duration: 100}).start();
+      Animated.timing(this.state.opacity, {toValue: 0, duration: 150}).start();
     } else if (!prevState.isSorting && this.state.isSorting) {
       requestAnimationFrame(() => {
         Animated.timing(this.state.opacity, {fromValue: 0.5, toValue: 1, duration: 100}).start();

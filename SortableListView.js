@@ -24,9 +24,7 @@ const AUTOSCROLL_OFFSET_THRESHOLD = 100;
 const SCROLL_MAX_CHANGE = 20;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
 
-const DEBUG_GESTURE = false;
-const DEBUG_SORT_EVENTS = false;
-const DEBUG_CHANGE_ROWS = false;
+const ENABLE_LAYOUT_ANIMATION = true;
 
 const SortableListView = React.createClass({
 
@@ -112,11 +110,6 @@ const SortableListView = React.createClass({
 
   componentWillMount() {
     let onlyIfSorting = (lifecycle) => {
-      DEBUG_GESTURE && console.log({
-        responderLifecycle: lifecycle,
-        isSorting: this._isSorting(),
-      });
-
       return this._isSorting();
     };
 
@@ -131,7 +124,6 @@ const SortableListView = React.createClass({
         onlyIfSorting.bind(this, 'onMoveShouldSetPanResponderCapture'),
 
       onPanResponderGrant: (e, gestureState) => {
-        DEBUG_GESTURE && console.log('grant');
         let { activeLayout } = this._getActiveItemState();
         let { y0 } = gestureState;
 
@@ -150,7 +142,6 @@ const SortableListView = React.createClass({
       },
 
       onPanResponderMove: (e, gestureState) => {
-        DEBUG_GESTURE && console.log('move');
         let { moveY, dy, y0 } = gestureState;
         this._dragMoveY = moveY - this._initialTouchOffset;
         this.state.panY.setValue(dy - this._layoutOffset);
@@ -164,14 +155,12 @@ const SortableListView = React.createClass({
       },
 
       onPanResponderTerminate: () => {
-        DEBUG_GESTURE && console.log('terminate');
         this._dragMoveY = null;
         this._isResponder = false;
         this._handleRowInactive();
       },
 
       onPanResponderRelease: (e, gestureState) => {
-        DEBUG_GESTURE && console.log('release');
         this._snapHoveredRow();
         this._initialTouchOffset = null;
         this._dragMoveY = null;
@@ -256,9 +245,14 @@ const SortableListView = React.createClass({
 
     if (hoveredRowId) {
       this._rowRefs[hoveredRowId].measure(layout => {
-        console.log(layout);
+        let targetY = layout.pageY - this._layoutOffset;
+        if (hoveredRowId !== activeItemState.activeRowId) {
+          targetY = targetY + activeItemState.dividerHeight
+        }
+
         Animated.timing(this.state.snapY, {
-          toValue: layout.pageY - this._layoutOffset + activeItemState.dividerHeight, duration: 100
+          toValue: targetY,
+          duration: 150,
         }).start();
       });
     }
@@ -274,11 +268,6 @@ const SortableListView = React.createClass({
     }
 
     if (hoveredRowId !== activeRowId) {
-      DEBUG_CHANGE_ROWS && console.log({
-        moveRow: activeRowId,
-        toPositionAboveRow: hoveredRowId,
-      });
-
       this.props.onChangeOrder &&
         this.props.onChangeOrder(activeRowId, this.props.order.indexOf(hoveredRowId) + 1);
     }
@@ -407,15 +396,19 @@ const SortableListView = React.createClass({
         hoveredRowId: newHoveredRowId,
       };
 
-      UIManager.setLayoutAnimationEnabledExperimental &&
-        UIManager.setLayoutAnimationEnabledExperimental(true);
-      LayoutAnimation.easeInEaseOut();
-      this.state.sharedListData.dispatch(actionData);
-
-      requestAnimationFrame(() => {
+      if (ENABLE_LAYOUT_ANIMATION) {
         UIManager.setLayoutAnimationEnabledExperimental &&
-          UIManager.setLayoutAnimationEnabledExperimental(false);
-      });
+          UIManager.setLayoutAnimationEnabledExperimental(true);
+
+        LayoutAnimation.easeInEaseOut();
+
+        requestAnimationFrame(() => {
+          UIManager.setLayoutAnimationEnabledExperimental &&
+            UIManager.setLayoutAnimationEnabledExperimental(false);
+        });
+      }
+
+      this.state.sharedListData.dispatch(actionData);
 
       // TODO: update temporary ordering
       // Save hovered row as previous updated
@@ -452,8 +445,6 @@ const SortableListView = React.createClass({
       type: 'START_SORTING',
     });
 
-    DEBUG_SORT_EVENTS && console.log('start sorting!');
-
     this._list.setNativeProps({
       scrollEnabled: false,
     });
@@ -470,11 +461,7 @@ const SortableListView = React.createClass({
    * _handleRowInactive from onLongPressOut
    */
   _handleRowInactive() {
-    DEBUG_SORT_EVENTS && console.log('stop sorting!');
-
     if (this._isSorting() && !this._isResponder) {
-      DEBUG_SORT_EVENTS && console.log('got into stop sorting block!');
-
       this.state.sharedListData.dispatch({
         type: 'STOP_SORTING',
       });

@@ -5,9 +5,6 @@ import React, {
 
 import { shallowEquals, shallowEqualsIgnoreKeys } from 'ShallowEquals';
 
-const DEBUG_HOVER = true;
-const DEBUG_LIFECYCLE = false;
-
 const SortableListRowContainer = React.createClass({
 
   propTypes: {
@@ -29,11 +26,6 @@ const SortableListRowContainer = React.createClass({
   },
 
   componentWillMount() {
-    DEBUG_LIFECYCLE && console.log({
-      mount: true,
-      rowId: this.props.rowId,
-    });
-
     let updateHoverState = () => {
       let data = this.props.sharedListData.getState();
       let { rowId } = this.props;
@@ -55,16 +47,6 @@ const SortableListRowContainer = React.createClass({
         nextState.dividerIsVisible = true;
       } else {
         nextState.dividerIsVisible = false;
-      }
-
-      if (DEBUG_HOVER && (isActiveRow || isHoveredOver)) {
-        console.log({
-          rowId,
-          isActiveRow,
-          isHoveredOver,
-          isSorting,
-          ...nextState,
-        });
       }
 
       if (!shallowEquals(this.state, nextState)) {
@@ -155,16 +137,9 @@ const SortableListRowContainer = React.createClass({
       innerViews.push(
         <View style={{
           height: dividerHeight,
-          borderBottomWidth: 1,
-          borderBottomColor: '#eee'
         }} key="divider" />
       );
     }
-
-    DEBUG_LIFECYCLE && console.log({
-      render: true,
-      rowId: this.props.rowId,
-    });
 
     return (
       <View
