@@ -412,6 +412,8 @@ const SortableListView = React.createClass({
   },
 
   _maybeAutoScroll() {
+    this._isAutoScrolling = false;
+
     if (!this._isSorting()) {
       return;
     }
@@ -425,9 +427,12 @@ const SortableListView = React.createClass({
     let newScrollOffset = null;
     let relativeDragMoveY = _dragMoveY - this._layoutOffset;
     let { activeLayout } = this._getActiveItemState();
-    let contextualScrollMaxChange = Math.max(
+
+    // We should scroll faster in longer lists... but cap that too
+    let contextualScrollMaxChange = clamp(
+      SCROLL_MAX_CHANGE * (this._contentHeight / 1000),
       SCROLL_MAX_CHANGE,
-      SCROLL_MAX_CHANGE * (this._contentHeight / 1000)
+      SCROLL_MAX_CHANGE * 3,
     );
 
     // Get the position at the bottom of the row that we're dragging -- dragMoveY
@@ -445,6 +450,7 @@ const SortableListView = React.createClass({
     }
 
     if (newScrollOffset !== null) {
+      this._isAutoScrolling = true;
       this.scrollWithoutAnimationTo(newScrollOffset);
     }
 
@@ -500,33 +506,31 @@ const SortableListView = React.createClass({
       return;
     }
 
-    let { activeRowId } = this._getActiveItemState();
-    let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
-    let newHoveredRowId = this._findCurrentlyHoveredRow();
+    if (!this._isAutoScrolling) {
+      let { activeRowId } = this._getActiveItemState();
+      let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
+      let newHoveredRowId = this._findCurrentlyHoveredRow();
 
-    if (hoveredRowId !== newHoveredRowId && newHoveredRowId) {
-      let actionData = {
-        type: 'SET_HOVERED_ROW_ID',
-        hoveredRowId: newHoveredRowId,
-      };
+      if (hoveredRowId !== newHoveredRowId && newHoveredRowId) {
+        let actionData = {
+          type: 'SET_HOVERED_ROW_ID',
+          hoveredRowId: newHoveredRowId,
+        };
 
-      if (ENABLE_LAYOUT_ANIMATION) {
-        UIManager.setLayoutAnimationEnabledExperimental &&
-          UIManager.setLayoutAnimationEnabledExperimental(true);
-
-        LayoutAnimation.easeInEaseOut();
-
-        requestAnimationFrame(() => {
+        if (ENABLE_LAYOUT_ANIMATION) {
           UIManager.setLayoutAnimationEnabledExperimental &&
-            UIManager.setLayoutAnimationEnabledExperimental(false);
-        });
+            UIManager.setLayoutAnimationEnabledExperimental(true);
+
+          LayoutAnimation.easeInEaseOut();
+
+          requestAnimationFrame(() => {
+            UIManager.setLayoutAnimationEnabledExperimental &&
+              UIManager.setLayoutAnimationEnabledExperimental(false);
+          });
+        }
+
+        this.state.sharedListData.dispatch(actionData);
       }
-
-      this.state.sharedListData.dispatch(actionData);
-
-      // TODO: update temporary ordering
-      // Save hovered row as previous updated
-      // Make sure that we update all numbers between that one and current one
     }
 
     // TODO: do this less frequently on worse devices?
