@@ -55,12 +55,10 @@ const SortableListRowContainer = React.createClass({
     };
 
     let updateRowNumber = (data) => {
-      console.log(data.labelState);
-
-      this.setState({
-        labelFormat: data.labelState.format,
-        labelText: data.labelState.textByRowId[this.props.rowId],
-      });
+      // this.setState({
+      //   labelFormat: data.labelState.format,
+      //   labelText: data.labelState.textByRowId[this.props.rowId],
+      // });
     };
 
     let updateState = () => {
