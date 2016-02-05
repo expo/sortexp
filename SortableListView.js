@@ -25,11 +25,11 @@ const { HEADER_ROW_ID } = Constants;
 
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
-const AUTOSCROLL_OFFSET_THRESHOLD = 85;
+const AUTOSCROLL_OFFSET_THRESHOLD = 100;
 const SCROLL_MAX_CHANGE = 20;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
 
-const ENABLE_LAYOUT_ANIMATION = true;
+const ENABLE_LAYOUT_ANIMATION = false;
 
 const SortableListView = React.createClass({
 
@@ -423,10 +423,9 @@ const SortableListView = React.createClass({
       return this.requestAnimationFrame(this._maybeAutoScroll);
     }
 
+    let { activeLayout, dividerHeight } = this._getActiveItemState();
     let currentScrollOffset = this._mostRecentScrollOffset;
     let newScrollOffset = null;
-    let relativeDragMoveY = _dragMoveY - this._layoutOffset;
-    let { activeLayout } = this._getActiveItemState();
 
     // We should scroll faster in longer lists... but cap that too
     let contextualScrollMaxChange = clamp(
@@ -435,13 +434,15 @@ const SortableListView = React.createClass({
       SCROLL_MAX_CHANGE * 3,
     );
 
-    // Get the position at the bottom of the row that we're dragging -- dragMoveY
-    // refers to the y position at the topmost point of the rect
+
+    // Get the position at the top and bottom of the row that we're dragging --
+    // dragMoveY refers to the y position at the topmost point of the rect
+    let topDragMoveY = _dragMoveY - this._layoutOffset + activeLayout.frameHeight;
     let bottomDragMoveY = _dragMoveY + activeLayout.frameHeight;
 
-    if (relativeDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
+    if (topDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
       // Auto scroll up
-      let percentageChange = 1 - (relativeDragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
+      let percentageChange = 1 - (topDragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
       newScrollOffset = Math.max(0, currentScrollOffset - percentageChange * contextualScrollMaxChange);
     } else if (bottomDragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
       // Auto scroll down

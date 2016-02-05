@@ -22,14 +22,19 @@ const SortableListGhostRowContainer = React.createClass({
 
   componentWillMount() {
     let updateState = () => {
-      let data = this.props.sharedListData.getState().activeItemState;
-      let { activeLayout, activeRowId, activeRowData, isSorting } = data;
+      let data = this.props.sharedListData.getState();
+      let { activeItemState, labelState } = data;
+      let { activeLayout, activeRowId, activeRowData, isSorting } = activeItemState;
+      let { format: labelFormat } = labelState;
+      let labelText = labelState.textByRowId[activeRowId];
 
       this.setState({
         layout: activeLayout,
         rowId: activeRowId,
         rowData: activeRowData,
         isSorting,
+        labelText,
+        labelFormat,
       });
     }
 
@@ -53,7 +58,7 @@ const SortableListGhostRowContainer = React.createClass({
   },
 
   render() {
-    let { rowData, rowId, layout, opacity, isSorting } = this.state;
+    let { rowData, rowId, layout, opacity, isSorting, labelText, labelFormat } = this.state;
     let { panY, snapY } = this.props;
 
     let height = 0;
@@ -83,7 +88,7 @@ const SortableListGhostRowContainer = React.createClass({
       <Animated.View
         style={[styles.base, dynamicStyles]}
         pointerEvents="none">
-        {rowId && this.props.renderRow(rowData, rowId, {ghost: true})}
+        {rowId && this.props.renderRow(rowData, rowId, {ghost: true, labelText, labelFormat})}
       </Animated.View>
     );
   }
