@@ -13,6 +13,7 @@ const { UIManager } = NativeModules;
 import TimerMixin from 'react-timer-mixin';
 
 import clamp from './clamp';
+import { shallowEquals } from 'ShallowEquals';
 
 import IncrementalListView from 'IncrementalListView';
 import SortableListHeader from './SortableListHeader';
@@ -133,6 +134,8 @@ const SortableListView = React.createClass({
   },
 
   componentWillMount() {
+    this._updateLabelStateFromProps({nextProps: this.props, force: true});
+
     let onlyIfSorting = (lifecycle) => {
       return this._isSorting();
     };
@@ -210,15 +213,21 @@ const SortableListView = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    let { dataSource } = this.state;
+    this._updateLabelStateFromProps({nextProps});
 
     if (nextProps.items !== this.props.items || nextProps.order !== this.props.order) {
+      let { dataSource } = this.state;
+
       this.setState({
         dataSource: dataSource.cloneWithRows(nextProps.items, nextProps.order),
       });
     }
+  },
 
-    if (nextProps.labelFormat !== this.props.labelFormat) {
+  _updateLabelStateFromProps({nextProps, force}) {
+    if (force ||
+        nextProps.labelFormat !== this.props.labelFormat ||
+        !shallowEquals(nextProps.order, this.props.order)) {
       this.state.sharedListData.dispatch({
         type: 'SET_LABEL_FORMAT',
         labelFormat: nextProps.labelFormat,

@@ -27,7 +27,7 @@ const SortableListRowContainer = React.createClass({
   },
 
   componentWillMount() {
-    let updateHoverState = (data) => {
+    let getHoverState = (data) => {
       let { rowId } = this.props;
       let { isSorting, activeRowId } = data.activeItemState;
       let { hoveredRowId } = data;
@@ -49,22 +49,26 @@ const SortableListRowContainer = React.createClass({
         nextState.dividerIsVisible = false;
       }
 
-      if (!shallowEquals(this.state, nextState)) {
-        this.setState(nextState);
-      }
+      return nextState;
     };
 
-    let updateRowNumber = (data) => {
-      // this.setState({
-      //   labelFormat: data.labelState.format,
-      //   labelText: data.labelState.textByRowId[this.props.rowId],
-      // });
+    let getLabelState = (data) => {
+      return {
+        labelFormat: data.labelState.format,
+        labelText: data.labelState.textByRowId[this.props.rowId],
+      };
     };
 
     let updateState = () => {
       let data = this.props.sharedListData.getState();
-      updateHoverState(data);
-      updateRowNumber(data);
+      let nextState = {
+        ...getHoverState(data),
+        ...getLabelState(data),
+      };
+
+      if (!shallowEquals(this.state, nextState)) {
+        this.setState(nextState);
+      }
     };
 
     this._unsubscribe = this.props.sharedListData.subscribe(updateState);

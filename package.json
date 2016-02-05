@@ -3,12 +3,29 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node node_modules/react-native/local-cli/cli.js start"
+    "test": "jest"
   },
   "dependencies": {
+    "immutable": "^3.7.6",
     "lodash": "^4.2.1",
+    "react-clone-referenced-element": "^1.0.1",
     "react-native": "facebook/react-native#82b0df9d2a6163879647691235f01b3067c471b8",
     "react-timer-mixin": "^0.13.3",
     "redux": "^3.2.1"
+  },
+  "devDependencies": {
+    "babel-jest": "^6.0.1",
+    "babel-preset-react-native": "^1.2.4",
+    "jest-cli": "^0.8.2"
+  },
+  "jest": {
+    "scriptPreprocessor": "<rootDir>/node_modules/babel-jest",
+    "testFileExtensions": [
+      "js"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "json"
+    ]
   }
 }

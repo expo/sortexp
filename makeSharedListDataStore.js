@@ -4,6 +4,7 @@
 'use strict';
 
 import { combineReducers, createStore } from 'redux';
+import reinsert from './reinsert';
 
 const defaultReducer = (reductions) => (state, action, ...rest) => (
   (reductions[action.type] || reductions.DEFAULT)(state, action, ...rest)
@@ -50,8 +51,15 @@ const hoverReducer = defaultReducer({
   },
 });
 
+function toObjectByRowId(order) {
+  return _.reduce(order, (result, rowId, i) => {
+    result[rowId] = i + 1;
+    return result;
+  }, {});
+}
+
 const labelReducer = defaultReducer({
-  DEFAULT(state = {format: 'bullet', textByRowId: []}) {
+  DEFAULT(state = {format: 'bullet', textByRowId: {}}) {
     return state;
   },
 
@@ -63,10 +71,33 @@ const labelReducer = defaultReducer({
   },
 
   SET_ORDER(state, action) {
-    let textByRowId = _.reduce(action.order, (result, rowId, i) => {
-      result[rowId] = i + 1;
-      return result;
-    }, {});
+    // if we are currently sorting then this would need to behave
+    // differently, but don't care about this case right now
+    let { order } = action;
+    let textByRowId = toObjectByRowId(order);
+
+    return {
+      ...state,
+      order,
+      textByRowId,
+    };
+  },
+
+  START_SORTING(state, action) {
+    return {
+      ...state,
+      activeRowId: action.activeRowId,
+    };
+  },
+
+  SET_HOVERED_ROW_ID(state, action) {
+    let temporaryOrder = reinsert(
+      state.order,
+      state.order.indexOf(state.activeRowId),
+      state.order.indexOf(action.hoveredRowId) + 1,
+    );
+
+    let textByRowId = toObjectByRowId(temporaryOrder);
 
     return {
       ...state,
@@ -74,23 +105,12 @@ const labelReducer = defaultReducer({
     };
   },
 
-  START_SORTING(state, action) {
-    // ?????
-    return state;
-  },
-
   STOP_SORTING(state, action) {
-    // ?????
-    return state;
-  },
-
-  SET_HOVERED_ROW_ID(state, action) {
-    // ??????
     return state;
   },
 });
 
-export default () => {
+module.exports = () => {
   return createStore(combineReducers({
     hoveredRowId: hoverReducer,
     activeItemState: activeItemReducer,

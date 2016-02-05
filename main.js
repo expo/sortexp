@@ -12,11 +12,11 @@ import React, {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-
 const TouchableComponent = TouchableOpacity;
 
 import range from 'lodash/range';
 import reinsert from './reinsert';
+
 import SortableListView from './SortableListView';
 
 class ListItem extends React.Component {
@@ -44,7 +44,7 @@ class ListItem extends React.Component {
           style={styles.row}
           pointerEvents={this.state.isFocused ? 'auto' : 'none'}>
           <View style={styles.labelContainer}>
-            { labelFormat === 'bullet' &&
+            { (labelFormat === 'bullet' || labelText === undefined) &&
               <View style={styles.bullet} /> }
 
             { labelFormat === 'number' &&
@@ -85,10 +85,10 @@ class DraggableExample extends React.Component {
     super(props);
 
     let order = [];
-    let items = range(15).reduce((result, i) => {
+    let items = range(100).reduce((result, i) => {
       let key = `id-${i}`
       order.push(key);
-      result[key] = {text: DATA[i]}
+      result[key] = {text: DATA[i % DATA.length]}
       return result;
     }, {});
 
