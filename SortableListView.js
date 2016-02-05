@@ -34,6 +34,12 @@ const SortableListView = React.createClass({
 
   mixins: [TimerMixin],
 
+  getDefaultProps() {
+    return {
+      labelFormat: 'bullet',
+    };
+  },
+
   propTypes: {
     /*
      * An object where the keys are the id's of the items and the values are
@@ -52,6 +58,8 @@ const SortableListView = React.createClass({
      * An array of the keys from `items` which specifies the order
      */
     order: PropTypes.array.isRequired,
+
+    labelFormat: PropTypes.oneOf(['bullet', 'number']),
 
     /*
      * Should return the component instance for the given:
@@ -130,6 +138,11 @@ const SortableListView = React.createClass({
     };
 
     let endDrag = () => {
+      if (this._endDragTimeout) {
+        this.clearImmediate(this._endDragTimeout);
+        this._endDragTimeout = null;
+      }
+
       this._endDragTimeout = this.setImmediate(() => {
         this._dragMoveY = null;
         this._isResponder = false;
@@ -202,6 +215,18 @@ const SortableListView = React.createClass({
     if (nextProps.items !== this.props.items || nextProps.order !== this.props.order) {
       this.setState({
         dataSource: dataSource.cloneWithRows(nextProps.items, nextProps.order),
+      });
+    }
+
+    if (nextProps.labelFormat !== this.props.labelFormat) {
+      this.state.sharedListData.dispatch({
+        type: 'SET_LABEL_FORMAT',
+        labelFormat: nextProps.labelFormat,
+      });
+
+      this.state.sharedListData.dispatch({
+        type: 'SET_ORDER',
+        order: nextProps.order,
       });
     }
   },
@@ -278,6 +303,8 @@ const SortableListView = React.createClass({
   },
 
   renderGhostRow() {
+    // TODO: add labelFormat and labelText
+
     return (
       <SortableListGhostRowContainer
         key="ghost"

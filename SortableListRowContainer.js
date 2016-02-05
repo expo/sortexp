@@ -4,6 +4,7 @@ import React, {
 } from 'react-native';
 
 import { shallowEquals } from 'ShallowEquals';
+import cloneReferencedElement from 'react-clone-referenced-element';
 
 const SortableListRowContainer = React.createClass({
 
@@ -26,8 +27,7 @@ const SortableListRowContainer = React.createClass({
   },
 
   componentWillMount() {
-    let updateHoverState = () => {
-      let data = this.props.sharedListData.getState();
+    let updateHoverState = (data) => {
       let { rowId } = this.props;
       let { isSorting, activeRowId } = data.activeItemState;
       let { hoveredRowId } = data;
@@ -52,10 +52,25 @@ const SortableListRowContainer = React.createClass({
       if (!shallowEquals(this.state, nextState)) {
         this.setState(nextState);
       }
-    }
+    };
 
-    this._unsubscribe = this.props.sharedListData.subscribe(updateHoverState);
-    updateHoverState();
+    let updateRowNumber = (data) => {
+      console.log(data.labelState);
+
+      this.setState({
+        labelFormat: data.labelState.format,
+        labelText: data.labelState.textByRowId[this.props.rowId],
+      });
+    };
+
+    let updateState = () => {
+      let data = this.props.sharedListData.getState();
+      updateHoverState(data);
+      updateRowNumber(data);
+    };
+
+    this._unsubscribe = this.props.sharedListData.subscribe(updateState);
+    updateState();
   },
 
   componentWillUnmount() {
@@ -68,6 +83,43 @@ const SortableListRowContainer = React.createClass({
     let propsHaveChanged = nextProps.rowData !== this.props.rowData;
 
     return stateHasChanged || propsHaveChanged;
+  },
+
+  render() {
+    let { dividerIsVisible, rowIsVisible } = this.state;
+    let innerViews = [];
+
+    if (rowIsVisible) {
+      let item = this.props.renderRow(
+        this.props.rowData,
+        this.props.rowId,
+        {
+          labelFormat: this.state.labelFormat,
+          labelText: this.state.labelText,
+          onLongPress: this.handleLongPress,
+          onPressOut: this.handlePressOut,
+        },
+      );
+
+      let itemWithRef = cloneReferencedElement(item, {
+        ref: component => { this._item = component; },
+      });
+
+      innerViews.push(itemWithRef);
+    }
+
+    if (dividerIsVisible) {
+      innerViews.push(this.props.renderDivider());
+    }
+
+    return (
+      <View
+        onLayout={this._onLayout}
+        key={this.props.rowId}
+        ref={view => { this._view = view; }}>
+        {innerViews}
+      </View>
+    );
   },
 
   measure(callback) {
@@ -101,46 +153,12 @@ const SortableListRowContainer = React.createClass({
   },
 
   _onLayout(layout) {
-    // Don't update layout if it's just as a result of row hiding or divider showing up
+    // Don't update layout if it's just as a result of divider showing up
     if (!this.state.dividerIsVisible) {
       this.props.onRowLayout(layout);
     }
   },
 
-  render() {
-    let item = this.props.renderRow(
-      this.props.rowData,
-      this.props.rowId,
-      {
-        onLongPress: this.handleLongPress,
-        onPressOut: this.handlePressOut,
-      },
-    );
-
-    let {
-      dividerIsVisible,
-      rowIsVisible,
-    } = this.state;
-
-    let innerViews = [];
-
-    if (rowIsVisible) {
-      innerViews.push(item);
-    }
-
-    if (dividerIsVisible) {
-      innerViews.push(this.props.renderDivider());
-    }
-
-    return (
-      <View
-        onLayout={this._onLayout}
-        key={this.props.rowId}
-        ref={view => { this._view = view; }}>
-        {innerViews}
-      </View>
-    );
-  }
 });
 
 export default SortableListRowContainer;

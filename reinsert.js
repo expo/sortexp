@@ -1,4 +1,9 @@
 export default function reinsert(array, fromIndex, toIndex) {
+  console.log({
+    fromIndex,
+    toIndex,
+  });
+
   if (fromIndex < toIndex) {
     toIndex = toIndex - 1;
   }
