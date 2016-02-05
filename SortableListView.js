@@ -114,6 +114,12 @@ const SortableListView = React.createClass({
    */
   _contentHeight: 0,
 
+  /*
+   * We keep track of when we are autoscrolling so we don't update the hovered
+   * row at the samer time. If we update it, it just looks weird.
+   */
+  _isAutoScrolling: false,
+
   getInitialState() {
     let { items, order } = this.props;
     let dataSource = new ListView.DataSource({
