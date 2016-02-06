@@ -26,7 +26,7 @@ const { HEADER_ROW_ID } = Constants;
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
 const AUTOSCROLL_OFFSET_THRESHOLD = 120;
-const SCROLL_MAX_CHANGE = 20;
+const SCROLL_MAX_CHANGE = 25;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
 
 const ENABLE_LAYOUT_ANIMATION = false;
@@ -141,16 +141,20 @@ const SortableListView = React.createClass({
     };
 
     let endDrag = () => {
-      if (this._endDragTimeout) {
-        this.clearImmediate(this._endDragTimeout);
-        this._endDragTimeout = null;
-      }
+      this._dragMoveY = null;
+      this._isResponder = false;
+      this._handleRowInactive();
+    };
 
-      this._endDragTimeout = this.setImmediate(() => {
+    let release = (e, gestureState) => {
+      if (this._isResponder) {
+        this._snapHoveredRow();
+        this._initialTouchOffset = null;
         this._dragMoveY = null;
         this._isResponder = false;
+        this._maybeFireOnChangeOrder();
         this._handleRowInactive();
-      });
+      }
     };
 
     this.panResponder = PanResponder.create({
@@ -190,25 +194,12 @@ const SortableListView = React.createClass({
 
       onPanResponderReject: endDrag,
       onPanResponderTerminate: endDrag,
-      onPanResponderEnd: endDrag,
+      onPanResponderEnd: release,
+      onPanResponderRelease: release,
 
       onResponderTerminationRequest: () => {
         return !this._isSorting();
       },
-
-      onPanResponderRelease: (e, gestureState) => {
-        if (this._endDragTimeout) {
-          this.clearImmediate(this._endDragTimeout);
-          this._endDragTimeout = null;
-        }
-
-        this._snapHoveredRow();
-        this._initialTouchOffset = null;
-        this._dragMoveY = null;
-        this._isResponder = false;
-        this._maybeFireOnChangeOrder();
-        this._handleRowInactive();
-      }
      });
   },
 
@@ -440,11 +431,11 @@ const SortableListView = React.createClass({
     if (topDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
       // Auto scroll up
       let percentageChange = 1 - (topDragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
-      newScrollOffset = Math.max(0, currentScrollOffset - Math.max(10, percentageChange * contextualScrollMaxChange));
+      newScrollOffset = Math.max(0, currentScrollOffset - Math.max(15, percentageChange * contextualScrollMaxChange));
     } else if (bottomDragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
       // Auto scroll down
       let percentageChange = 1 - ((DEVICE_HEIGHT - bottomDragMoveY) / AUTOSCROLL_OFFSET_THRESHOLD);
-      newScrollOffset = currentScrollOffset + Math.max(10, (percentageChange * contextualScrollMaxChange));
+      newScrollOffset = currentScrollOffset + Math.max(15, (percentageChange * contextualScrollMaxChange));
     }
 
     if (newScrollOffset === null) {
