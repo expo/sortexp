@@ -33,6 +33,29 @@ const activeItemReducer = defaultReducer({
   },
 });
 
+const autoScrollingReducer = defaultReducer({
+  DEFAULT(state = false) {
+    return state;
+  },
+
+  START_SORTING(state, action) {
+    return false
+  },
+
+  STOP_SORTING(state, action) {
+    return false;
+  },
+
+  START_AUTO_SCROLLING(state, action) {
+    return true;
+  },
+
+  STOP_AUTO_SCROLLING(state, action) {
+    return false;
+  },
+});
+
+
 const hoverReducer = defaultReducer({
   DEFAULT(state = null) {
     return state;
@@ -115,5 +138,6 @@ module.exports = () => {
     hoveredRowId: hoverReducer,
     activeItemState: activeItemReducer,
     labelState: labelReducer,
+    isAutoScrolling: autoScrollingReducer,
   }));
 }

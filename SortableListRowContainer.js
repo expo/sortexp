@@ -31,6 +31,7 @@ const SortableListRowContainer = React.createClass({
       let { rowId } = this.props;
       let { isSorting, activeRowId } = data.activeItemState;
       let { hoveredRowId } = data;
+      let { isAutoScrolling } = data;
       let isActiveRow = activeRowId === rowId;
       let isHoveredOver = hoveredRowId === rowId;
       let nextState = {};
@@ -43,7 +44,7 @@ const SortableListRowContainer = React.createClass({
       }
 
       // Is the divider visible?
-      if (isSorting && isHoveredOver) {
+      if (isSorting && isHoveredOver && !isAutoScrolling) {
         nextState.dividerIsVisible = true;
       } else {
         nextState.dividerIsVisible = false;

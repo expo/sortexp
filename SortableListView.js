@@ -114,12 +114,6 @@ const SortableListView = React.createClass({
    */
   _contentHeight: 0,
 
-  /*
-   * We keep track of when we are autoscrolling so we don't update the hovered
-   * row at the samer time. If we update it, it just looks weird.
-   */
-  _isAutoScrolling: false,
-
   getInitialState() {
     let { items, order } = this.props;
     let dataSource = new ListView.DataSource({
@@ -418,8 +412,6 @@ const SortableListView = React.createClass({
   },
 
   _maybeAutoScroll() {
-    this._isAutoScrolling = false;
-
     if (!this._isSorting()) {
       return;
     }
@@ -440,10 +432,9 @@ const SortableListView = React.createClass({
       SCROLL_MAX_CHANGE * 3,
     );
 
-
     // Get the position at the top and bottom of the row that we're dragging --
     // dragMoveY refers to the y position at the topmost point of the rect
-    let topDragMoveY = _dragMoveY - this._layoutOffset + activeLayout.frameHeight;
+    let topDragMoveY = _dragMoveY - this._layoutOffset + activeLayout.frameHeight / 2;
     let bottomDragMoveY = _dragMoveY + activeLayout.frameHeight;
 
     if (topDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
@@ -456,12 +447,20 @@ const SortableListView = React.createClass({
       newScrollOffset = currentScrollOffset + (percentageChange * contextualScrollMaxChange);
     }
 
-    if (newScrollOffset !== null) {
-      this._isAutoScrolling = true;
+    if (newScrollOffset === null) {
+      this._isAutoScrolling() &&
+        this.state.sharedListData.dispatch({type: 'STOP_AUTO_SCROLLING'});
+    } else {
       this.scrollWithoutAnimationTo(newScrollOffset);
+      !this._isAutoScrolling() &&
+        this.state.sharedListData.dispatch({type: 'START_AUTO_SCROLLING'});
     }
 
     this.requestAnimationFrame(this._maybeAutoScroll);
+  },
+
+  _isAutoScrolling() {
+    return this.state.sharedListData.getState().isAutoScrolling;
   },
 
   _findRowIdAtOffset(y) {
@@ -513,31 +512,29 @@ const SortableListView = React.createClass({
       return;
     }
 
-    if (!this._isAutoScrolling) {
-      let { activeRowId } = this._getActiveItemState();
-      let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
-      let newHoveredRowId = this._findCurrentlyHoveredRow();
+    let { activeRowId } = this._getActiveItemState();
+    let hoveredRowId = this.state.sharedListData.getState().hoveredRowId;
+    let newHoveredRowId = this._findCurrentlyHoveredRow();
 
-      if (hoveredRowId !== newHoveredRowId && newHoveredRowId) {
-        let actionData = {
-          type: 'SET_HOVERED_ROW_ID',
-          hoveredRowId: newHoveredRowId,
-        };
+    if (hoveredRowId !== newHoveredRowId && newHoveredRowId) {
+      let actionData = {
+        type: 'SET_HOVERED_ROW_ID',
+        hoveredRowId: newHoveredRowId,
+      };
 
-        if (ENABLE_LAYOUT_ANIMATION) {
+      if (ENABLE_LAYOUT_ANIMATION) {
+        UIManager.setLayoutAnimationEnabledExperimental &&
+          UIManager.setLayoutAnimationEnabledExperimental(true);
+
+        LayoutAnimation.easeInEaseOut();
+
+        requestAnimationFrame(() => {
           UIManager.setLayoutAnimationEnabledExperimental &&
-            UIManager.setLayoutAnimationEnabledExperimental(true);
-
-          LayoutAnimation.easeInEaseOut();
-
-          requestAnimationFrame(() => {
-            UIManager.setLayoutAnimationEnabledExperimental &&
-              UIManager.setLayoutAnimationEnabledExperimental(false);
-          });
-        }
-
-        this.state.sharedListData.dispatch(actionData);
+            UIManager.setLayoutAnimationEnabledExperimental(false);
+        });
       }
+
+      this.state.sharedListData.dispatch(actionData);
     }
 
     // TODO: do this less frequently on worse devices?
