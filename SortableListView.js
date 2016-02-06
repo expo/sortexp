@@ -529,7 +529,7 @@ const SortableListView = React.createClass({
     }
 
     // TODO: do this less frequently on worse devices?
-    this.requestAnimationFrame(this._maybeUpdateHoveredRow);
+    this.setTimeout(this._maybeUpdateHoveredRow, 16.6 * 2);
   },
 
   /*
