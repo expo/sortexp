@@ -25,7 +25,7 @@ const { HEADER_ROW_ID } = Constants;
 
 import makeSharedListDataStore from 'makeSharedListDataStore';
 
-const AUTOSCROLL_OFFSET_THRESHOLD = 100;
+const AUTOSCROLL_OFFSET_THRESHOLD = 120;
 const SCROLL_MAX_CHANGE = 20;
 const DEVICE_HEIGHT = Dimensions.get('window').height;
 
@@ -434,17 +434,17 @@ const SortableListView = React.createClass({
 
     // Get the position at the top and bottom of the row that we're dragging --
     // dragMoveY refers to the y position at the topmost point of the rect
-    let topDragMoveY = _dragMoveY - this._layoutOffset + activeLayout.frameHeight / 2;
+    let topDragMoveY = _dragMoveY + activeLayout.frameHeight - this._layoutOffset;
     let bottomDragMoveY = _dragMoveY + activeLayout.frameHeight;
 
     if (topDragMoveY < AUTOSCROLL_OFFSET_THRESHOLD && currentScrollOffset > 0) {
       // Auto scroll up
       let percentageChange = 1 - (topDragMoveY / AUTOSCROLL_OFFSET_THRESHOLD);
-      newScrollOffset = Math.max(0, currentScrollOffset - percentageChange * contextualScrollMaxChange);
+      newScrollOffset = Math.max(0, currentScrollOffset - Math.max(10, percentageChange * contextualScrollMaxChange));
     } else if (bottomDragMoveY > DEVICE_HEIGHT - AUTOSCROLL_OFFSET_THRESHOLD) {
       // Auto scroll down
       let percentageChange = 1 - ((DEVICE_HEIGHT - bottomDragMoveY) / AUTOSCROLL_OFFSET_THRESHOLD);
-      newScrollOffset = currentScrollOffset + (percentageChange * contextualScrollMaxChange);
+      newScrollOffset = currentScrollOffset + Math.max(10, (percentageChange * contextualScrollMaxChange));
     }
 
     if (newScrollOffset === null) {
