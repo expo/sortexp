@@ -114,6 +114,10 @@ const labelReducer = defaultReducer({
   },
 
   SET_HOVERED_ROW_ID(state, action) {
+    if (state.labelFormat === 'bullet') {
+      return state;
+    }
+
     let temporaryOrder = reinsert(
       state.order,
       state.order.indexOf(state.activeRowId),

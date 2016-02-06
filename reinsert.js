@@ -1,9 +1,5 @@
 export default function reinsert(originalArray, fromIndex, toIndex) {
   let array = originalArray.slice();
-  console.log({
-    fromIndex,
-    toIndex,
-  });
 
   if (fromIndex < toIndex) {
     toIndex = toIndex - 1;
