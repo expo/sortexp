@@ -3,6 +3,7 @@
 import React, {
   AppRegistry,
   Dimensions,
+  InteractionManager,
   ListView,
   ScrollView,
   StyleSheet,
@@ -14,10 +15,65 @@ import React, {
 } from 'react-native';
 const TouchableComponent = TouchableOpacity;
 
+import burnCPU from 'burnCPU';
 import range from 'lodash/range';
 import reinsert from './reinsert';
+import { shallowEquals, shallowEqualsIgnoreKeys } from 'ShallowEquals';
 
 import SortableListView from './SortableListView';
+
+class ListItemLabel extends React.Component {
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      labelText: props.labelText,
+      labelFormat: props.labelFormat,
+    };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (!shallowEquals(nextProps, this.state)) {
+      this.setState({
+        labelText: nextProps.labelText,
+        labelFormat: nextProps.labelFormat,
+      });
+    }
+  }
+
+  setValues(nextProps) {
+    // I can put this inside requestIdleCallback!
+    this.setState({
+      labelText: nextProps.labelText,
+      labelFormat: nextProps.labelFormat,
+    });
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (!shallowEquals(nextState, this.state)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  render() {
+    let { labelText, labelFormat } = this.state;
+
+    return (
+      <View style={styles.labelContainer}>
+        { (labelFormat === 'bullet' || labelText === undefined) &&
+          <View style={styles.bullet} /> }
+
+        { labelFormat === 'number' &&
+          <View style={styles.number}>
+            <Text>{labelText}</Text>
+          </View> }
+      </View>
+    )
+  }
+}
 
 class ListItem extends React.Component {
 
@@ -27,6 +83,18 @@ class ListItem extends React.Component {
     this.state = {
       isFocused: false,
     };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.sortableProps.labelFormat !== this.props.sortableProps.labelFormat ||
+        nextProps.sortableProps.labelText !== this.props.sortableProps.labelText) {
+      this._label.setValues(nextProps.sortableProps);
+    }
+  }
+
+  shouldComponentUpdate(nextProps) {
+    // This is dumb but yeah basically just want to see if *only* these props changed
+    return !shallowEqualsIgnoreKeys(this.props, nextProps, ['sortableProps']);
   }
 
   render() {
@@ -43,15 +111,10 @@ class ListItem extends React.Component {
         <View
           style={styles.row}
           pointerEvents={this.state.isFocused ? 'auto' : 'none'}>
-          <View style={styles.labelContainer}>
-            { (labelFormat === 'bullet' || labelText === undefined) &&
-              <View style={styles.bullet} /> }
-
-            { labelFormat === 'number' &&
-              <View style={styles.number}>
-                <Text>{labelText}</Text>
-              </View> }
-          </View>
+          <ListItemLabel
+            ref={view => { this._label = view; }}
+            labelText={labelText}
+            labelFormat={labelFormat} />
 
           <TextInput
             underlineColorAndroid="transparent"
@@ -85,7 +148,7 @@ class DraggableExample extends React.Component {
     super(props);
 
     let order = [];
-    let items = range(30).reduce((result, i) => {
+    let items = range(50).reduce((result, i) => {
       let key = `id-${i}`
       order.push(key);
       result[key] = {text: DATA[i % DATA.length]}
