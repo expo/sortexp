@@ -1,6 +1,7 @@
 {
-  "name": "sortexp",
+  "name": "@exponent/sortable-list-view",
   "version": "0.0.1",
+  "main": "SortableListView.js",
   "private": true,
   "scripts": {
     "test": "jest"
@@ -8,8 +9,9 @@
   "dependencies": {
     "immutable": "^3.7.6",
     "lodash": "^4.2.1",
+    "react": "^0.14.7",
     "react-clone-referenced-element": "^1.0.1",
-    "react-native": "facebook/react-native#82b0df9d2a6163879647691235f01b3067c471b8",
+    "react-native": "facebook/react-native#master",
     "react-timer-mixin": "^0.13.3",
     "redux": "^3.2.1"
   },
