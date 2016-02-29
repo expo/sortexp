@@ -1,5 +1,5 @@
 {
-  "name": "@exponent/sortable-list-view",
+  "name": "react-native-sortable-list-view",
   "version": "0.0.1",
   "main": "SortableListView.js",
   "private": false,
