@@ -2,7 +2,7 @@
   "name": "@exponent/sortable-list-view",
   "version": "0.0.1",
   "main": "SortableListView.js",
-  "private": true,
+  "private": false,
   "scripts": {
     "test": "jest"
   },
