@@ -13,9 +13,9 @@ const { UIManager } = NativeModules;
 import TimerMixin from 'react-timer-mixin';
 
 import clamp from './clamp';
-import { shallowEquals } from 'ShallowEquals';
+import { shallowEquals } from './ShallowEquals';
 
-import IncrementalListView from 'IncrementalListView';
+import IncrementalListView from './IncrementalListView';
 import SortableListHeader from './SortableListHeader';
 import SortableListGhostRowContainer from './SortableListGhostRowContainer';
 import SortableListRowContainer from './SortableListRowContainer';
@@ -23,7 +23,7 @@ import Constants from './SortableListViewConstants';
 
 const { HEADER_ROW_ID } = Constants;
 
-import makeSharedListDataStore from 'makeSharedListDataStore';
+import makeSharedListDataStore from './makeSharedListDataStore';
 
 const AUTOSCROLL_OFFSET_THRESHOLD = 120;
 const SCROLL_MAX_CHANGE = 25;
@@ -122,7 +122,7 @@ const SortableListView = React.createClass({
 
     return {
       dataSource: dataSource.cloneWithRows(items, order),
-      initialListSize: this.props.order.length,
+      initialListSize: this.props.order.length || 1,
       panY: new Animated.Value(0),
       snapY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
