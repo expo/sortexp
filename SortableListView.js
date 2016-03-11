@@ -122,7 +122,7 @@ const SortableListView = React.createClass({
 
     return {
       dataSource: dataSource.cloneWithRows(items, order),
-      initialListSize: this.props.order.length || 1,
+      initialListSize: this.props.order.length,
       panY: new Animated.Value(0),
       snapY: new Animated.Value(0),
       sharedListData: makeSharedListDataStore(),
@@ -188,8 +188,10 @@ const SortableListView = React.createClass({
       onPanResponderMove: (e, gestureState) => {
         let { moveY, dy, y0 } = gestureState;
         this._dragMoveY = moveY - this._initialTouchOffset;
-        this.state.panY.setValue(dy - this._layoutOffset);
-        this.state.snapY.setValue(moveY - this._initialTouchOffset - this._layoutOffset);
+        let panY = dy - this._layoutOffset;
+        let snapY = moveY - this._initialTouchOffset - this._layoutOffset;
+        this.state.panY.setValue(panY);
+        this.state.snapY.setValue(snapY);
       },
 
       onPanResponderReject: endDrag,
@@ -205,7 +207,6 @@ const SortableListView = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     this._updateLabelStateFromProps({nextProps});
-
     if (nextProps.items !== this.props.items || nextProps.order !== this.props.order) {
       let { dataSource } = this.state;
 
@@ -242,6 +243,10 @@ const SortableListView = React.createClass({
     this._mostRecentScrollOffset = constrainedY;
   },
 
+  getScrollResponder() {
+    return this._list.getScrollResponder();
+  },
+
   render() {
     return (
       <View style={{flex: 1}}>
@@ -249,7 +254,7 @@ const SortableListView = React.createClass({
           {...this.props}
           {...this.panResponder.panHandlers}
           ref={view => { this._list = view; }}
-          initialListSize={this.state.initialListSize}
+          initialListSize={this.state.initialListSize || 10 /* TODO: fix this dumb hack */ }
           dataSource={this.state.dataSource}
           onScroll={this._handleScroll}
           onLayout={this._handleListLayout}
@@ -260,6 +265,10 @@ const SortableListView = React.createClass({
         {this.renderGhostRow()}
       </View>
     );
+  },
+
+  scrollTo(options) {
+    this._list.scrollTo(options.y);
   },
 
   renderHeader() {
