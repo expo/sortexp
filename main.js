@@ -98,8 +98,12 @@ class ListItem extends React.Component {
   }
 
   render() {
-    let { item, sortableProps } = this.props;
+    let { item, sortableProps, isPlaceholder } = this.props;
     let { labelFormat, labelText, ...onPressHandlers } = sortableProps;
+
+    if (isPlaceholder) {
+      onPressHandlers = {};
+    }
 
     return (
       <TouchableComponent
@@ -171,6 +175,8 @@ class DraggableExample extends React.Component {
           onChangeOrder={this._handleOrderChange.bind(this)}
           order={this.state.order}
           renderRow={this._renderRow}
+          placeholderRowKey={"ABCD123"}
+          placeholderRowIndex={10}
           labelFormat={this.state.format}
         />
       </View>
@@ -215,9 +221,10 @@ class DraggableExample extends React.Component {
     this.setState({order});
   }
 
-  _renderRow(item, rowId, props) {
+  _renderRow(item, rowId, props, isPlaceholder) {
     return (
       <ListItem
+        isPlaceholder={isPlaceholder}
         key={rowId}
         item={item}
         id={rowId}

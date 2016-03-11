@@ -9,6 +9,7 @@ import cloneReferencedElement from 'react-clone-referenced-element';
 const SortableListRowContainer = React.createClass({
 
   propTypes: {
+    isPlaceholder: PropTypes.bool,
     onLongPress: PropTypes.func.isRequired,
     onPressOut: PropTypes.func.isRequired,
     onRowLayout: PropTypes.func.isRequired,
@@ -102,6 +103,7 @@ const SortableListRowContainer = React.createClass({
           onLongPress: this.handleLongPress,
           onPressOut: this.handlePressOut,
         },
+        this.props.isPlaceholder,
       );
 
       let itemWithRef = cloneReferencedElement(item, {

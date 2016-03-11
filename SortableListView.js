@@ -54,6 +54,10 @@ const SortableListView = React.createClass({
      * and the new index.
      */
     onChangeOrder: PropTypes.func.isRequired,
+    onSortStart: PropTypes.func,
+
+    /* Not implemented, might not be necessary */
+    onSortEnd: PropTypes.func,
 
     /*
      * An array of the keys from `items` which specifies the order
@@ -73,6 +77,10 @@ const SortableListView = React.createClass({
      * that kind of thing).
      */
     renderRow: PropTypes.func.isRequired,
+
+
+    placeholderRowKey: PropTypes.any.isRequired,
+    placeholderRowIndex: PropTypes.number.isRequired,
 
     renderDivider: PropTypes.func,
     renderHeader: PropTypes.func,
@@ -115,13 +123,12 @@ const SortableListView = React.createClass({
   _contentHeight: 0,
 
   getInitialState() {
-    let { items, order } = this.props;
     let dataSource = new ListView.DataSource({
       rowHasChanged: (r1, r2) => false,
     });
 
     return {
-      dataSource: dataSource.cloneWithRows(items, order),
+      dataSource: this._cloneWithProps(dataSource, this.props),
       initialListSize: this.props.order.length,
       panY: new Animated.Value(0),
       snapY: new Animated.Value(0),
@@ -143,6 +150,7 @@ const SortableListView = React.createClass({
     let endDrag = () => {
       this._dragMoveY = null;
       this._isResponder = false;
+
       this._handleRowInactive();
     };
 
@@ -177,6 +185,7 @@ const SortableListView = React.createClass({
         }
 
         this._isResponder = true;
+        this.props.onSortStart && this.props.onSortStart();
 
         /* We need to calculate the distance from the touch to the pageY of the
          * top of the row that the touch occured, so we know later how far the
@@ -211,9 +220,19 @@ const SortableListView = React.createClass({
       let { dataSource } = this.state;
 
       this.setState({
-        dataSource: dataSource.cloneWithRows(nextProps.items, nextProps.order),
+        dataSource: this._cloneWithProps(dataSource, nextProps),
       });
     }
+  },
+
+  _cloneWithProps(dataSource, props) {
+    // insert placeholder row id in order
+    // insert {} for rowData
+
+    let order = props.order.slice();
+    order.splice(props.placeholderRowIndex, 0, props.placeholderRowKey);
+    let items = {...props.items, [props.placeholderRowKey]: {}};
+    return dataSource.cloneWithRows(items, order);
   },
 
   _updateLabelStateFromProps({nextProps, force}) {
@@ -295,10 +314,13 @@ const SortableListView = React.createClass({
   },
 
   renderRow(data, rowId, props = {}) {
+    var isPlaceholder = rowId === this.props.placeholderRowKey;
+
     return (
       <SortableListRowContainer
         {...this.props}
         key={rowId}
+        isPlaceholder={isPlaceholder}
         ref={view => { this._rowRefs[rowId] = view; }}
         onLongPress={this._handleRowActive}
         onPressOut={this._handleRowInactive}
