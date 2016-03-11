@@ -47,7 +47,7 @@ const SortableListHeader = React.createClass({
         {this.state.dividerIsVisible && this.props.renderDivider()}
       </View>
     );
-  }
+  },
 
   _onLayout(layout) {
     // Don't update layout if it's just as a result of divider showing up
