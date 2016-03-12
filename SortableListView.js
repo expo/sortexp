@@ -314,13 +314,10 @@ const SortableListView = React.createClass({
   },
 
   renderRow(data, rowId, props = {}) {
-    var isPlaceholder = rowId === this.props.placeholderRowKey;
-
     return (
       <SortableListRowContainer
         {...this.props}
         key={rowId}
-        isPlaceholder={isPlaceholder}
         ref={view => { this._rowRefs[rowId] = view; }}
         onLongPress={this._handleRowActive}
         onPressOut={this._handleRowInactive}
