@@ -15,7 +15,6 @@ import TimerMixin from 'react-timer-mixin';
 import clamp from './clamp';
 import { shallowEquals } from './ShallowEquals';
 
-import IncrementalListView from './IncrementalListView';
 import SortableListHeader from './SortableListHeader';
 import SortableListGhostRowContainer from './SortableListGhostRowContainer';
 import SortableListRowContainer from './SortableListRowContainer';
@@ -269,7 +268,7 @@ const SortableListView = React.createClass({
   render() {
     return (
       <View style={{flex: 1}}>
-        <IncrementalListView
+        <ListView
           {...this.props}
           {...this.panResponder.panHandlers}
           ref={view => { this._list = view; }}
