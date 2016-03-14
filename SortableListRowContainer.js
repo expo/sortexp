@@ -141,10 +141,16 @@ const SortableListRowContainer = React.createClass({
   },
 
   handleLongPress(e) {
+    let { locationY } = e.nativeEvent;
+
     this.measure(layout => {
+      let { frameHeight } = layout;
+      let touchFromTopPercentage = locationY / frameHeight;
+
       this.props.onLongPress({
         layout: layout,
         touch: e.nativeEvent,
+        touchFromTopPercentage,
         rowData: this.props.rowData,
         rowId: this.props.rowId,
       });

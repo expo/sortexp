@@ -58,6 +58,8 @@ const SortableListView = React.createClass({
     /* Not implemented, might not be necessary */
     onSortEnd: PropTypes.func,
 
+    onLongPressRowTop: PropTypes.func,
+
     /*
      * An array of the keys from `items` which specifies the order
      */
@@ -215,7 +217,8 @@ const SortableListView = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     this._updateLabelStateFromProps({nextProps});
-    if (nextProps.items !== this.props.items || nextProps.order !== this.props.order) {
+    if (nextProps.items !== this.props.items || nextProps.order !== this.props.order ||
+        nextProps.placeholderRowIndex !== this.props.placeholderRowIndex) {
       let { dataSource } = this.state;
 
       this.setState({
@@ -225,9 +228,6 @@ const SortableListView = React.createClass({
   },
 
   _cloneWithProps(dataSource, props) {
-    // insert placeholder row id in order
-    // insert {} for rowData
-
     let order = props.order.slice();
     order.splice(props.placeholderRowIndex, 0, props.placeholderRowKey);
     let items = {...props.items, [props.placeholderRowKey]: {}};
@@ -562,9 +562,14 @@ const SortableListView = React.createClass({
   /*
    * This is called from a row when it becomes active (when it is long-pressed)
    */
-  _handleRowActive({rowId, layout}) {
-    if (!rowId) {
+  _handleRowActive({rowId, layout, touchFromTopPercentage}) {
+    if (!rowId || rowId === this.props.placeholderRowKey) {
       return;
+    }
+
+    // onLongPressTop takes precedence over general onLongPress
+    if (this.props.onLongPressRowTop && touchFromTopPercentage <= 0.20) {
+      return this.props.onLongPressRowTop(rowId);
     }
 
     // Reset our animated values
