@@ -37,6 +37,7 @@ const SortableListView = React.createClass({
   getDefaultProps() {
     return {
       labelFormat: 'bullet',
+      touchFromTopPercentage: 0.20,
     };
   },
 
@@ -82,6 +83,8 @@ const SortableListView = React.createClass({
 
     placeholderRowKey: PropTypes.any.isRequired,
     placeholderRowIndex: PropTypes.number.isRequired,
+
+    touchFromTopPercentage: PropTypes.number,
 
     renderDivider: PropTypes.func,
     renderHeader: PropTypes.func,
@@ -568,7 +571,7 @@ const SortableListView = React.createClass({
     }
 
     // onLongPressTop takes precedence over general onLongPress
-    if (this.props.onLongPressRowTop && touchFromTopPercentage <= 0.20) {
+    if (this.props.onLongPressRowTop && touchFromTopPercentage <= this.props.touchFromTopPercentage) {
       return this.props.onLongPressRowTop(rowId);
     }
 
