@@ -3,6 +3,7 @@
  */
 'use strict';
 
+import _ from 'lodash';
 import { combineReducers, createStore } from 'redux';
 import reinsert from './reinsert';
 
