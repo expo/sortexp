@@ -3,7 +3,7 @@ import React, {
   View,
 } from 'react-native';
 
-import { shallowEquals } from 'ShallowEquals';
+import { shallowEquals } from './ShallowEquals';
 import cloneReferencedElement from 'react-clone-referenced-element';
 
 const SortableListRowContainer = React.createClass({

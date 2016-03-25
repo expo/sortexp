@@ -3,7 +3,7 @@ import React, {
   View,
 } from 'react-native';
 
-import { shallowEquals } from 'ShallowEquals';
+import { shallowEquals } from './ShallowEquals';
 import Constants from './SortableListViewConstants';
 
 const { HEADER_ROW_ID } = Constants;
